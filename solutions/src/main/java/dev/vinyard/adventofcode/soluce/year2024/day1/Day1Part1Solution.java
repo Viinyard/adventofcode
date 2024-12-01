@@ -2,13 +2,13 @@ package dev.vinyard.adventofcode.soluce.year2024.day1;
 
 import dev.vinyard.aoc.plugins.solution.api.Solution;
 import dev.vinyard.aoc.plugins.solution.api.annotation.AdventOfCodeSolution;
-import dev.vinyard.adventofcode.utils.FileReader;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
+import java.util.LinkedList;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 
 @AdventOfCodeSolution(year = 2024, day = 1, part = 1, description = "Historian Hysteria", link = "https://adventofcode.com/2024/day/1", tags = "unsolved")
 public class Day1Part1Solution implements Solution<Long> {
@@ -52,8 +52,14 @@ public class Day1Part1Solution implements Solution<Long> {
         SolutionLexer lexer = new SolutionLexer(charStream);
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         SolutionParser parser = new SolutionParser(tokens);
-        // TODO get the ASD from the parser
 
-        return null;
+        ASD.Root root = parser.root().out;
+
+        LinkedList<Long> locationIdLeftList = root.left().stream().sorted().collect(Collectors.toCollection(LinkedList::new));
+        LinkedList<Long> locationIdRightList = root.right().stream().sorted().collect(Collectors.toCollection(LinkedList::new));
+
+        return LongStream.generate(() -> Math.abs(locationIdLeftList.poll() - locationIdRightList.poll()))
+                .limit(Math.min(locationIdLeftList.size(), locationIdRightList.size()))
+                .sum();
     }
 }
