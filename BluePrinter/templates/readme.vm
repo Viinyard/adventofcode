@@ -1,8 +1,10 @@
 # Advent of Code Solutions
+
+---
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/Viinyard/adventofcode/build.yml?branch=master&style=for-the-badge&label=Build%20and%20test)
+
 Solutions to the [Advent of Code](https://adventofcode.com/) problem sets.
-
 $aocSolutions.classLoader(${path})
-
 ## Results
 #set($solutions = $aocSolutions.getSolutions())
 #set($total = 0)
