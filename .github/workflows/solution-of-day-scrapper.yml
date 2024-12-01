@@ -1,0 +1,54 @@
+name: Generate antlr4 based Solution of the Day
+
+on: workflow_dispatch
+
+jobs:
+  run-blueprinter:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup environment variables
+        id: date
+        run: |
+          echo "YEAR=$(date +'%Y')" >> $GITHUB_ENV
+          echo "DAY=$(date +'%d')" >> $GITHUB_ENV
+          echo "AOC_SESSION_ID=${{ secrets.AOC_SESSION_ID }}" >> $GITHUB_ENV
+
+      - uses: s4u/maven-settings-action@v3.1.0
+        with:
+          servers: |
+            [{
+                "id": "github",
+                "username": "${{ secrets.USER_PACKAGE_READ }}",
+                "password": "${{ secrets.TOKEN_PACKAGE_READ }}"
+            }]
+
+      - uses: actions/checkout@v4
+      - name: Commit generated solution
+        run: |
+          git config user.name 'Viinyard'
+          git config user.email 'viinyard@users.noreply.github.com'
+          mvn clean package -DskipTests
+          mvn -pl blueprinter-runner spring-boot:run -D"spring-boot.run.arguments=antlr-solution --RESPONSE_TYPE=Long"
+          git add -A
+          git commit -am "Solution for ${{ env.YEAR }}-${{ env.DAY }}"
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.PAT }}
+          commit-message: "Solution for ${{ env.YEAR }}-${{ env.DAY }}"
+          branch: "solution-${{ env.YEAR }}-${{ env.DAY }}"
+          title: "Solution for ${{ env.YEAR }}-${{ env.DAY }}"
+          body: "This pull request contains the generated solution for ${{ env.YEAR }}-${{ env.DAY }}."
+          draft: true
+          labels: "generated"

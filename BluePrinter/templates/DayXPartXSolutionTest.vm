@@ -1,0 +1,23 @@
+package dev.vinyard.adventofcode.soluce.year${YEAR}.day${DAY};
+
+import dev.vinyard.adventofcode.common.BaseTest;
+import dev.vinyard.aoc.plugins.solution.api.Solution;
+import org.junit.jupiter.params.provider.Arguments;
+
+import java.util.stream.Stream;
+
+public class Day${DAY}Part${PART}SolutionTest extends BaseTest<${RESPONSE_TYPE}> {
+
+    @Override
+    public Solution<${RESPONSE_TYPE}> getSolution() {
+        return new Day${DAY}Part${PART}Solution();
+    }
+
+    @Override
+    public Stream<Arguments> testSolution() {
+        return Stream.of(
+            Arguments.of("soluce/year${YEAR}/day${DAY}/test/test.txt", ${TEST_RESPONSE}, null, null),
+            Arguments.of("soluce/year${YEAR}/day${DAY}/input.txt", ${TEST_RESPONSE}, null, null)
+        );
+    }
+}

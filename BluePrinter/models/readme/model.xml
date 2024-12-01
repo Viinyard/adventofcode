@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<model xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="monModel" xsi:noNamespaceSchemaLocation="model.xsd">
+    <properties>
+        <property key="path"/>
+    </properties>
+
+    <directives>
+        <directive name="readme" template="readme.vm">README.md</directive>
+    </directives>
+
+    <prompts>
+        <stringInput value="path" order="1">
+            <defaultValue>Solutions\target\solutions.jar</defaultValue>
+        </stringInput>
+    </prompts>
+</model>

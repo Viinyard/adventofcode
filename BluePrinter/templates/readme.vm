@@ -1,0 +1,17 @@
+# Advent of Code Solutions
+Solutions to the [Advent of Code](https://adventofcode.com/) problem sets.
+
+$aocSolutions.classLoader(${path})
+
+## Results
+#set($solutions = $aocSolutions.getSolutions())
+#set($total = 0)
+| Year | Day | Part | Name | Code | Test | Result | Time (ms) |
+|------|-----|------|------|------|------|--------|-----------|
+#foreach ($solution in $solutions)
+    #set($nanos = $solution.getStatistics(10).getMin())
+    #set($total = $total + $nanos)
+| $solution.getYear() | $solution.getDay() | $solution.getPart() | [$solution.getDescription()]($solution.getLink()) | [Code](${SRC}/${PACKAGE}/soluce/year${solution.getYear()}/day${solution.getDay()}/Day${solution.getDay()}Part${solution.getPart()}Solution.java) | [Test](${TEST_SRC}/${PACKAGE}/soluce/year${solution.getYear()}/day${solution.getDay()}/Day${solution.getDay()}Part${solution.getPart()}SolutionTest.java) | $solution.getResult() | $aocSolutions.nanoToMillis($nanos) |
+#end
+
+Solved $solutions.size() solutions in $aocSolutions.nanoToSeconds($total) seconds.

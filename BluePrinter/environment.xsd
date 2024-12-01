@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+    <xs:element name="environment" type="environmentType">
+        <xs:key name="propertyKey">
+            <xs:selector xpath="properties/property"/>
+            <xs:field xpath="@key"/>
+        </xs:key>
+        <xs:keyref name="propertyKeyRef" refer="propertyKey">
+            <xs:selector xpath="prompts/*"/>
+            <xs:field xpath="@value"/>
+        </xs:keyref>
+    </xs:element>
+
+    <xs:complexType name="environmentType">
+        <xs:sequence>
+            <xs:element name="properties" type="propertiesType" minOccurs="0">
+                <xs:unique name="uniqueKeyProperty">
+                    <xs:selector xpath="property"/>
+                    <xs:field xpath="@key"/>
+                </xs:unique>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="propertiesType">
+        <xs:sequence>
+            <xs:element name="property" minOccurs="0" maxOccurs="unbounded" type="propertyType"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="propertyType">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="key" type="xs:string" use="required"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+</xs:schema>

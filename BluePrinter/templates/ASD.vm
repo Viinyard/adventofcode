@@ -1,0 +1,9 @@
+package dev.vinyard.adventofcode.soluce.year${YEAR}.day${DAY};
+
+public class ASD {
+
+    public static class Root {
+
+    }
+
+}

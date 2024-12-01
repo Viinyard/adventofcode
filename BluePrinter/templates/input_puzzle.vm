@@ -1,0 +1,4 @@
+#set($index = $math.sub($PART, 1))
+#set ($url = $INPUT_LINK)
+#set ($input = $aocScrapper.getInput($url, $SESSION_ID))
+$input

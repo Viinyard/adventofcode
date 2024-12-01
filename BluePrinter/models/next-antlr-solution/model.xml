@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<model xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="monModel" xsi:noNamespaceSchemaLocation="model.xsd">
+
+    <properties>
+        <property key="path"/>
+        <property key="LAST_SOLUTION"/>
+        <property key="YEAR"/>
+        <property key="DAY"/>
+        <property key="PART"/>
+        <property key="RESPONSE_TYPE"/>
+        <property key="LINK"/>
+        <property key="DESCRIPTION"/>
+        <property key="TAGS">unsolved</property>
+        <property key="TEST_RESPONSE"/>
+        <property key="INPUT_LINK">https://adventofcode.com/${YEAR}/day/${DAY}/input</property>
+    </properties>
+
+    <directives>
+        <directive name="Java File" template="DayXPartXSolution_antlr4.vm">
+            ${SRC}/${PACKAGE}/soluce/year${YEAR}/day${DAY}/Day${DAY}Part${PART}Solution.java
+        </directive>
+        <directive name="Java Test File" template="DayXPartXSolutionTest.vm">
+            ${TEST_SRC}/${PACKAGE}/soluce/year${YEAR}/day${DAY}/Day${DAY}Part${PART}SolutionTest.java
+        </directive>
+        <directive name="Grammar File" template="Solution_antlr4.vm">
+            ${ANTLR_SRC}/${PACKAGE}/soluce/year${YEAR}/day${DAY}/Solution.g4
+        </directive>
+        <directive name="ASD File" template="ASD.vm">
+            ${SRC}/${PACKAGE}/soluce/year${YEAR}/day${DAY}/ASD.java
+        </directive>
+        <directive name="Input" template="input_puzzle.vm">
+            ${RES}/soluce/year${YEAR}/day${DAY}/input.txt
+        </directive>
+        <directive name="Input" template="input_text.vm">
+            ${TEST_RES}/soluce/year${YEAR}/day${DAY}/part${PART}/test.txt
+        </directive>
+    </directives>
+
+    <prompts>
+        <stringInput value="path" order="1">
+            <defaultValue>Solutions\target\solutions.jar</defaultValue>
+        </stringInput>
+        <setupInput value="LAST_SOLUTION" order="2">
+            <setup>$aocSolutions.classLoader(${path})</setup>
+        </setupInput>
+        <stringInput value="YEAR" order="3">
+            <defaultValue>$aocSolutions.getNextSolution().year()</defaultValue>
+        </stringInput>
+        <stringInput value="DAY" order="4">
+            <defaultValue>$aocSolutions.getNextSolution().day()</defaultValue>
+        </stringInput>
+        <stringInput value="PART" order="5">
+            <defaultValue>$aocSolutions.getNextSolution().part()</defaultValue>
+        </stringInput>
+        <monoSelect value="RESPONSE_TYPE" order="6">
+            <value key="Long">Long</value>
+            <value key="String">String</value>
+            <value key="Integer">Integer</value>
+            <value key="Double">Double</value>
+            <value key="Float">Float</value>
+            <value key="Object" selected="true">Object</value>
+        </monoSelect>
+        <stringInput value="LINK" order="7">
+            <defaultValue>https://adventofcode.com/${YEAR}/day/${DAY}</defaultValue>
+        </stringInput>
+        <stringInput value="INPUT_LINK" order="8">
+            <defaultValue>https://adventofcode.com/${YEAR}/day/${DAY}/input</defaultValue>
+        </stringInput>
+        <stringInput value="TEST_RESPONSE" order="9">
+            <defaultValue>null</defaultValue>
+        </stringInput>
+    </prompts>
+</model>

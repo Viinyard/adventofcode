@@ -1,0 +1,48 @@
+name: Generate readme
+
+on:
+  workflow_dispatch
+
+jobs:
+  run-blueprinter:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup environment variables
+        id: date
+        run: |
+          echo "YEAR=2023" >> $GITHUB_ENV
+          echo "DAY=12" >> $GITHUB_ENV
+          echo "AOC_SESSION_ID=${{ secrets.AOC_SESSION_ID }}" >> $GITHUB_ENV
+
+      - uses: s4u/maven-settings-action@v3.1.0
+        with:
+          servers: |
+            [{
+                "id": "github",
+                "username": "${{ secrets.USER_PACKAGE_READ }}",
+                "password": "${{ secrets.TOKEN_PACKAGE_READ }}"
+            }]
+
+      - uses: actions/checkout@v4
+      - name: Commit generated solution
+        run: |
+          git config user.name 'Viinyard'
+          git config user.email 'viinyard@users.noreply.github.com'
+          mvn clean package -DskipTests
+          mvn -pl blueprinter-runner spring-boot:run -D"spring-boot.run.arguments=readme --path=../solutions/target/solutions.jar"
+          git add -A
+          git commit -am "Solution for ${{ env.YEAR }}-${{ env.DAY }}"
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.PAT }}

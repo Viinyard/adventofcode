@@ -1,0 +1,6 @@
+#set($index = $math.sub($PART, 1))
+#set ($url = $LINK)
+#set ($inputs = $aocScrapper.getInputs($url, $SESSION_ID, $index))
+#foreach ($input in $inputs)
+    $input
+#end
