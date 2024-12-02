@@ -9,8 +9,26 @@ options {
 }
 
 root returns [ASD.Root out]
-    :
+		@init {
+			List<ASD.Report> reports = new ArrayList<>();
+		}
+    : (report {
+      reports.add($report.out);
+    })* EOF {
+      $out = new ASD.Root(reports);
+    }
     ;
+
+report returns [ASD.Report out]
+	@init {
+		List<Long> values = new ArrayList<>();
+	}
+	: (value=INT {
+		values.add(Long.parseLong($value.text));
+	})* NEWLINE {
+		$out = new ASD.Report(values);
+	}
+	;
 
 INT
     // integer part forbis leading 0s (e.g. `01`)
@@ -18,5 +36,9 @@ INT
     ;
 
 WS
-    : [ \t\n\r]+ -> skip
+    : [ \t\r]+ -> skip
+    ;
+
+NEWLINE
+    : '\r'? '\n'
     ;
