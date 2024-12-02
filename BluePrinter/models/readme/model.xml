@@ -5,7 +5,7 @@
     </properties>
 
     <directives>
-        <directive name="readme" template="readme.vm">README.md</directive>
+        <directive name="readme" template="readme.vm" override="true">README.md</directive>
     </directives>
 
     <prompts>

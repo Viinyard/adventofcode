@@ -4,7 +4,7 @@
 
     <groupId>dev.vinyard.aoc</groupId>
     <artifactId>aoc</artifactId>
-    <version>2023.1-SNAPSHOT</version>
+    <version>2024.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>aoc</name>
@@ -63,7 +63,7 @@
         <velocity-engine-core.version>2.4.1</velocity-engine-core.version>
         <pf4j.version>3.12.1</pf4j.version>
         <velocity-engine-core.version>2.3</velocity-engine-core.version>
-        <plugins-api.version>1.9.0</plugins-api.version>
+        <plugins-api.version>1.10.0</plugins-api.version>
         <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
         <reflections.version>0.10.2</reflections.version>
         <okhttp.version>4.12.0</okhttp.version>

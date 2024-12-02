@@ -4,13 +4,13 @@
     <parent>
         <groupId>dev.vinyard.aoc.plugins</groupId>
         <artifactId>plugins</artifactId>
-        <version>2023.1-SNAPSHOT</version>
+        <version>2024.1-SNAPSHOT</version>
     </parent>
 
     <groupId>dev.vinyard.vb.plugins</groupId>
     <artifactId>plugins-aoc-scrapper</artifactId>
     <packaging>jar</packaging>
-    <version>2023.1-SNAPSHOT</version>
+    <version>2024.1-SNAPSHOT</version>
 
     <name>plugins-aoc-scrapper</name>
 

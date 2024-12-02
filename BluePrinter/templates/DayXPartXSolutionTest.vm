@@ -16,7 +16,7 @@ public class Day${DAY}Part${PART}SolutionTest extends BaseTest<${RESPONSE_TYPE}>
     @Override
     public Stream<Arguments> testSolution() {
         return Stream.of(
-            Arguments.of("soluce/year${YEAR}/day${DAY}/test/test.txt", ${TEST_RESPONSE}, null, null),
+            Arguments.of("soluce/year${YEAR}/day${DAY}/part${PART}/test.txt", ${TEST_RESPONSE}, null, null),
             Arguments.of("soluce/year${YEAR}/day${DAY}/input.txt", ${TEST_RESPONSE}, null, null)
         );
     }
