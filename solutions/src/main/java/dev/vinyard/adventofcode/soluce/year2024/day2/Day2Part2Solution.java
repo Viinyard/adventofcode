@@ -6,9 +6,12 @@ import dev.vinyard.adventofcode.utils.FileReader;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
+import org.apache.commons.lang3.Range;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.Arrays;
+import java.util.function.Predicate;
 
 @AdventOfCodeSolution(year = 2024, day = 2, part = 2, description = "Red-Nosed Reports", link = "https://adventofcode.com/2024/day/2", tags = "unsolved")
 public class Day2Part2Solution implements Solution<Object> {
@@ -37,8 +40,13 @@ public class Day2Part2Solution implements Solution<Object> {
         SolutionLexer lexer = new SolutionLexer(charStream);
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         SolutionParser parser = new SolutionParser(tokens);
-        // TODO get the ASD from the parser
+        ASD.Root root = parser.root().out;
 
-        return null;
+        Predicate<ASD.Report> isSafe = report -> report.isMostOfDifferenceIsBetween(
+                Range.between(1L, 3L),
+                Range.between(-3L, -1L)
+        );
+
+        return root.reports().stream().filter(isSafe).count();
     }
 }
