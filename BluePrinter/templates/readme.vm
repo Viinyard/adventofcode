@@ -4,8 +4,28 @@
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/Viinyard/adventofcode/build.yml?branch=master&style=for-the-badge&label=Build%20and%20test)
 
 Solutions to the [Advent of Code](https://adventofcode.com/) problem sets.
-$aocSolutions.classLoader(${path})
-## Results
+
+---
+
+$aocSolutions.classLoader(${path}) $aocSolutions.year("2023") #set($solutions = $aocSolutions.getSolutions())
+![Static Badge](https://img.shields.io/badge/aoc-2023-yellow?style=for-the-badge&logo=adventofcode&label=$solutions.size())
+
+#set($total = 0)
+| Year | Day | Part | Name | Code | Test | Result | Time (ms) |
+|------|-----|------|------|------|------|--------|-----------|
+#foreach ($solution in $solutions)
+    #set($nanos = $solution.getStatistics(10).getMin())
+    #set($total = $total + $nanos)
+| $solution.getYear() | $solution.getDay() | $solution.getPart() | [$solution.getDescription()]($solution.getLink()) | [Code](${SRC}/${PACKAGE}/soluce/year${solution.getYear()}/day${solution.getDay()}/Day${solution.getDay()}Part${solution.getPart()}Solution.java) | [Test](${TEST_SRC}/${PACKAGE}/soluce/year${solution.getYear()}/day${solution.getDay()}/Day${solution.getDay()}Part${solution.getPart()}SolutionTest.java) | $solution.getResult() | $aocSolutions.nanoToMillis($nanos) |
+#end
+
+Solved $solutions.size() solutions in $aocSolutions.nanoToSeconds($total) seconds.
+
+---
+
+$aocSolutions.reset() $aocSolutions.classLoader(${path}) $aocSolutions.year("2024") #set($solutions = $aocSolutions.getSolutions())
+![Static Badge](https://img.shields.io/badge/aoc-2024-yellow?style=for-the-badge&logo=adventofcode&label=$solutions.size())
+
 #set($solutions = $aocSolutions.getSolutions())
 #set($total = 0)
 | Year | Day | Part | Name | Code | Test | Result | Time (ms) |
@@ -17,3 +37,5 @@ $aocSolutions.classLoader(${path})
 #end
 
 Solved $solutions.size() solutions in $aocSolutions.nanoToSeconds($total) seconds.
+
+---

@@ -29,6 +29,11 @@ public class AoCVelocityBlueprintSolutionExtension implements BluePrinterExtensi
         args.add(SolutionFilter.SolverArgumentType.CLASSLOADER, path);
     }
 
+    public void reset() {
+        log.info("reset");
+        args = new SolutionFilter();
+    }
+
     @Override
     public void init(VelocityContext context) {
         args = new SolutionFilter();
