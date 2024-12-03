@@ -131,4 +131,22 @@
             <version>${commons-lang3.version}</version>
         </dependency>
     </dependencies>
+
+    <repositories>
+        <repository>
+            <id>github</id>
+            <url>https://maven.pkg.github.com/Viinyard/maven-repo</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub Viinyard Apache Maven Packages</name>
+            <url>https://maven.pkg.github.com/Viinyard/maven-repo</url>
+        </repository>
+    </distributionManagement>
 </project>
