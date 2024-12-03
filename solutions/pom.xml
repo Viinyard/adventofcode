@@ -42,7 +42,7 @@
                             </arguments>
                         </configuration>
                         <goals>
-                            <goal>blueprinter-runner</goal>
+                            <goal>blueprint</goal>
                         </goals>
                     </execution>
                     <execution>
