@@ -96,7 +96,7 @@ public class AoCVelocityBlueprintSolutionExtension implements BluePrinterExtensi
     }
 
     public SolutionInfo getCurrentSolution() {
-        return Optional.ofNullable(getLastSolution()).map(s -> new SolutionInfo(s.getYear(), s.getDay(), s.getPart())).orElseGet(() -> new SolutionInfo(Calendar.getInstance().get(Calendar.YEAR), 1, 1));
+        return Optional.ofNullable(getLastSolution()).map(s -> new SolutionInfo(s.getYear(), s.getDay(), s.getPart())).orElseGet(() -> new SolutionInfo(Calendar.getInstance().get(Calendar.YEAR), 1, 0));
     }
 
     public SolutionInfo getNextSolution() {
