@@ -8,8 +8,16 @@ options {
 
 }
 
-root returns [ASD.Root out]
-    :
+root returns [int out]
+    : (mulExpr {
+        $out += $mulExpr.out;
+    } | . )*? EOF
+    ;
+
+mulExpr returns [int out]
+    : 'mul(' left=INT ',' right=INT ')' {
+        $out = Integer.parseInt($left.text) * Integer.parseInt($right.text);
+    }
     ;
 
 INT
