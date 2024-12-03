@@ -55,6 +55,9 @@
         <setupInput value="SETUP" order="6">
             <setup>$aocSolutions.day(${DAY})</setup>
         </setupInput>
+        <stringInput value="PART" order="7">
+            <defaultValue>$aocSolutions.getNextSolution().part()</defaultValue>
+        </stringInput>
         <monoSelect value="RESPONSE_TYPE" order="8">
             <value key="Long">Long</value>
             <value key="String">String</value>
