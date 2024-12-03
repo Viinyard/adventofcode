@@ -10,7 +10,7 @@
 
     <prompts>
         <stringInput value="path" order="1">
-            <defaultValue>Solutions/target/solutions.jar</defaultValue>
+            <defaultValue>solutions/target/solutions.jar</defaultValue>
         </stringInput>
     </prompts>
 </model>
