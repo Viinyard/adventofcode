@@ -11,6 +11,8 @@
     <file url="file://$PROJECT_DIR$/blueprinter-runner/blueprinter-solution-gen/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/blueprinter-runner/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/blueprinter-runner/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/maven-blueprinter-plugin/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/maven-blueprinter-plugin/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/plugins/VelocityBlueprintPlugin/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/plugins/VelocityBlueprintPlugin/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/plugins/plugins-aoc-environment/src/main/java" charset="UTF-8" />

@@ -28,6 +28,53 @@
                 <groupId>org.antlr</groupId>
                 <artifactId>antlr4-maven-plugin</artifactId>
             </plugin>
+
+            <plugin>
+                <groupId>dev.vinyard.bp</groupId>
+                <artifactId>blueprinter-maven-plugin</artifactId>
+
+                <executions>
+                    <execution>
+                        <id>readme</id>
+                        <configuration>
+                            <arguments>
+                                <argument>readme</argument>
+                            </arguments>
+                        </configuration>
+                        <goals>
+                            <goal>blueprinter-runner</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>next-solution</id>
+                        <configuration>
+                            <arguments>
+                                <argument>next-antlr-solution</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>solution-of-day</id>
+                        <configuration>
+                            <arguments>
+                                <argument>antlr-solution</argument>
+                                <argument>--RESPONSE_TYPE=Long</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>solution</id>
+                        <configuration>
+                            <arguments>
+                                <argument>antlr-solution</argument>
+                                <argument>--YEAR=${year}</argument>
+                                <argument>--DAY=${day}</argument>
+                                <argument>--PART=${part}</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 

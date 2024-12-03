@@ -38,7 +38,7 @@ jobs:
           git config user.name 'Viinyard'
           git config user.email 'viinyard@users.noreply.github.com'
           mvn clean package -DskipTests
-          mvn -pl blueprinter-runner spring-boot:run -D"spring-boot.run.arguments=antlr-solution --RESPONSE_TYPE=Long"
+          mvn -pl solutions blueprinter:blueprint@solution-of-day
           git add -A
           git commit -am "Solution for ${{ env.YEAR }}-${{ env.DAY }}"
 

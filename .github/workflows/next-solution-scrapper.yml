@@ -36,7 +36,7 @@ jobs:
           git config user.name 'Viinyard'
           git config user.email 'viinyard@users.noreply.github.com'
           mvn clean package -DskipTests
-          mvn -pl blueprinter-runner spring-boot:run -D"spring-boot.run.arguments=next-antlr-solution --path=../solutions/target/solutions.jar"
+          mvn -pl solutions blueprinter:blueprint@next-solution
           git add -A
           git commit -am "Next solution"
 

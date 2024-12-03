@@ -12,6 +12,8 @@
       <set>
         <option value="$PROJECT_DIR$/BluePrinter/pom.xml" />
         <option value="$PROJECT_DIR$/blue-printer-cli/pom.xml" />
+        <option value="$PROJECT_DIR$/blueprinter-runner/pom.xml" />
+        <option value="$PROJECT_DIR$/maven-blueprinter-plugin/pom.xml" />
       </set>
     </option>
   </component>

@@ -3,7 +3,7 @@
 
     <properties>
         <property key="path"/>
-        <property key="LAST_SOLUTION"/>
+        <property key="SETUP"/>
         <property key="YEAR"/>
         <property key="DAY"/>
         <property key="PART"/>
@@ -40,19 +40,22 @@
         <stringInput value="path" order="1">
             <defaultValue>Solutions\target\solutions.jar</defaultValue>
         </stringInput>
-        <setupInput value="LAST_SOLUTION" order="2">
+        <setupInput value="SETUP" order="2">
             <setup>$aocSolutions.classLoader(${path})</setup>
         </setupInput>
         <stringInput value="YEAR" order="3">
             <defaultValue>$aocSolutions.getNextSolution().year()</defaultValue>
         </stringInput>
-        <stringInput value="DAY" order="4">
+        <setupInput value="SETUP" order="4">
+            <setup>$aocSolutions.year(${YEAR})</setup>
+        </setupInput>
+        <stringInput value="DAY" order="5">
             <defaultValue>$aocSolutions.getNextSolution().day()</defaultValue>
         </stringInput>
-        <stringInput value="PART" order="5">
-            <defaultValue>$aocSolutions.getNextSolution().part()</defaultValue>
-        </stringInput>
-        <monoSelect value="RESPONSE_TYPE" order="6">
+        <setupInput value="SETUP" order="6">
+            <setup>$aocSolutions.day(${DAY})</setup>
+        </setupInput>
+        <monoSelect value="RESPONSE_TYPE" order="8">
             <value key="Long">Long</value>
             <value key="String">String</value>
             <value key="Integer">Integer</value>
@@ -60,14 +63,17 @@
             <value key="Float">Float</value>
             <value key="Object" selected="true">Object</value>
         </monoSelect>
-        <stringInput value="LINK" order="7">
+        <stringInput value="LINK" order="9">
             <defaultValue>https://adventofcode.com/${YEAR}/day/${DAY}</defaultValue>
         </stringInput>
-        <stringInput value="INPUT_LINK" order="8">
+        <stringInput value="INPUT_LINK" order="10">
             <defaultValue>https://adventofcode.com/${YEAR}/day/${DAY}/input</defaultValue>
         </stringInput>
-        <stringInput value="TEST_RESPONSE" order="9">
+        <stringInput value="TEST_RESPONSE" order="11">
             <defaultValue>null</defaultValue>
         </stringInput>
+        <setupInput value="SETUP" order="12">
+            <setup>$aocSolutions.reset()</setup>
+        </setupInput>
     </prompts>
 </model>
