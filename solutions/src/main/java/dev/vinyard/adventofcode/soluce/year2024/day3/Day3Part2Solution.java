@@ -2,13 +2,12 @@ package dev.vinyard.adventofcode.soluce.year2024.day3;
 
 import dev.vinyard.aoc.plugins.solution.api.Solution;
 import dev.vinyard.aoc.plugins.solution.api.annotation.AdventOfCodeSolution;
-import dev.vinyard.adventofcode.utils.FileReader;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @AdventOfCodeSolution(year = 2024, day = 3, part = 2, description = "Mull It Over", link = "https://adventofcode.com/2024/day/3", tags = "unsolved")
 public class Day3Part2Solution implements Solution<Object> {
@@ -31,13 +30,20 @@ public class Day3Part2Solution implements Solution<Object> {
     */
     @Override
     public Object solve(String input) {
-        CharStream charStream = CharStreams.fromString(input);
+        Pattern pattern = Pattern.compile("mul\\(\\d{1,3},\\d{1,3}\\)|do\\(\\)|don't\\(\\)");
+        Matcher matcher = pattern.matcher(input);
+
+        StringBuilder sb = new StringBuilder();
+        while (matcher.find()) {
+            sb.append(matcher.group());
+        }
+
+        CharStream charStream = CharStreams.fromString(sb.toString());
 
         SolutionLexer lexer = new SolutionLexer(charStream);
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         SolutionParser parser = new SolutionParser(tokens);
-        // TODO get the ASD from the parser
 
-        return null;
+        return parser.root().out;
     }
 }
