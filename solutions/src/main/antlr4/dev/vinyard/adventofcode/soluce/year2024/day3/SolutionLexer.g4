@@ -1,52 +1,51 @@
 lexer grammar SolutionLexer;
 
-@members {
-    public static final int ENABLED = 1;
-    public static final int DISABLED = 2;
-}
-
 MUL
-    : 'mul('
+    : 'mul' OPEN
     ;
 
 COMMA
-    : ',';
-
-fragment OPEN
-    : '(';
+    : ','
+    ;
 
 CLOSE
-    : ')';
+    : ')'
+    ;
 
 INT
-    : [0-9]+;
+    : [0-9]+
+    ;
+
+STOP
+     : DONT OPEN CLOSE -> pushMode(DONT_MODE)
+     ;
+
+CONTINUE
+    : DO OPEN CLOSE -> skip
+    ;
+
+fragment DO
+    : 'do'
+    ;
+
+fragment OPEN
+    : '('
+    ;
 
 fragment DONT
     : 'don\'t'
     ;
 
-STOP
-     : DONT OPEN CLOSE -> pushMode(DONT_MODE);
-
-fragment DO
-    : 'do';
-
-CONTINUE
-    : DO OPEN CLOSE -> skip;
-
 mode DONT_MODE;
 
 REDO
-    : DO OPEN CLOSE -> popMode;
+    : DO OPEN CLOSE -> popMode
+    ;
 
 WS
-    : [ \t\n\r]+ -> skip
+    : [ \t\n\r.]+ -> skip
     ;
 
 OTHER
     : . -> skip
     ;
-
-
-
-
