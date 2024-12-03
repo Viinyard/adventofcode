@@ -7,22 +7,22 @@ Solutions to the [Advent of Code](https://adventofcode.com/) problem sets.
 
 ---
 
-$aocSolutions.classLoader(${path}) $aocSolutions.year("2023") 
-![Static Badge](https://img.shields.io/badge/aoc-2023-yellow?style=for-the-badge&logo=adventofcode&label=$solutions.size())
+  
+![Static Badge](https://img.shields.io/badge/aoc-2023-yellow?style=for-the-badge&logo=adventofcode&label=0)
 
 | Year | Day | Part | Name | Code | Test | Result | Time (ms) |
 |------|-----|------|------|------|------|--------|-----------|
 
-Solved $solutions.size() solutions in $aocSolutions.nanoToSeconds($total) seconds.
+Solved 0 solutions in 0 seconds.
 
 ---
 
-$aocSolutions.reset() $aocSolutions.classLoader(${path}) $aocSolutions.year("2024") 
-![Static Badge](https://img.shields.io/badge/aoc-2024-yellow?style=for-the-badge&logo=adventofcode&label=$solutions.size())
+   
+![Static Badge](https://img.shields.io/badge/aoc-2024-yellow?style=for-the-badge&logo=adventofcode&label=0)
 
 | Year | Day | Part | Name | Code | Test | Result | Time (ms) |
 |------|-----|------|------|------|------|--------|-----------|
 
-Solved $solutions.size() solutions in $aocSolutions.nanoToSeconds($total) seconds.
+Solved 0 solutions in 0 seconds.
 
 ---
