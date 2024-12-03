@@ -28,6 +28,15 @@ jobs:
           mvn clean install
           mvn -pl solutions blueprinter:blueprint@readme
 
+      - uses: s4u/maven-settings-action@v3.1.0
+        with:
+          servers: |
+            [{
+                "id": "github",
+                "username": "${{ secrets.USER_PACKAGE_READ }}",
+                "password": "${{ secrets.TOKEN_PACKAGE_READ }}"
+            }]
+
 
       - uses: stefanzweifel/git-auto-commit-action@v5
         with:
