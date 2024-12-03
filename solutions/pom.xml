@@ -41,9 +41,6 @@
                                 <argument>readme</argument>
                             </arguments>
                         </configuration>
-                        <goals>
-                            <goal>blueprint</goal>
-                        </goals>
                     </execution>
                     <execution>
                         <id>next-solution</id>
