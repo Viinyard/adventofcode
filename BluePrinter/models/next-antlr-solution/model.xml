@@ -38,7 +38,7 @@
 
     <prompts>
         <stringInput value="path" order="1">
-            <defaultValue>Solutions\target\solutions.jar</defaultValue>
+            <defaultValue>solutions/target/solutions.jar</defaultValue>
         </stringInput>
         <setupInput value="SETUP" order="2">
             <setup>$aocSolutions.classLoader(${path})</setup>
