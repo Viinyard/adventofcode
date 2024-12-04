@@ -48,7 +48,7 @@
                 <plugin>
                     <groupId>dev.vinyard.bp</groupId>
                     <artifactId>blueprinter-maven-plugin</artifactId>
-                    <version>1.11.0</version>
+                    <version>${plugins-api.version}</version>
                 </plugin>
             </plugins>
         </pluginManagement>
@@ -68,7 +68,7 @@
         <velocity-engine-core.version>2.4.1</velocity-engine-core.version>
         <pf4j.version>3.12.1</pf4j.version>
         <velocity-engine-core.version>2.3</velocity-engine-core.version>
-        <plugins-api.version>1.11.0</plugins-api.version>
+        <plugins-api.version>1.12.0</plugins-api.version>
         <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
         <reflections.version>0.10.2</reflections.version>
         <okhttp.version>4.12.0</okhttp.version>
@@ -77,33 +77,4 @@
         <exec-maven-plugin.version>3.5.0</exec-maven-plugin.version>
         <spring-boot-dependencies.version>3.3.3</spring-boot-dependencies.version>
     </properties>
-
-    <repositories>
-        <repository>
-            <id>github</id>
-            <url>https://maven.pkg.github.com/Viinyard/maven-repo</url>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
-
-    <pluginRepositories>
-        <pluginRepository>
-            <id>github</id>
-            <url>https://maven.pkg.github.com/Viinyard/maven-repo</url>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </pluginRepository>
-    </pluginRepositories>
-
-    <distributionManagement>
-        <repository>
-            <id>github</id>
-            <name>GitHub Viinyard Apache Maven Packages</name>
-            <url>https://maven.pkg.github.com/Viinyard/maven-repo</url>
-        </repository>
-    </distributionManagement>
-
 </project>
