@@ -68,7 +68,7 @@
         <velocity-engine-core.version>2.4.1</velocity-engine-core.version>
         <pf4j.version>3.12.1</pf4j.version>
         <velocity-engine-core.version>2.3</velocity-engine-core.version>
-        <plugins-api.version>1.12.0</plugins-api.version>
+        <plugins-api.version>v1.12.0</plugins-api.version>
         <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
         <reflections.version>0.10.2</reflections.version>
         <okhttp.version>4.12.0</okhttp.version>
