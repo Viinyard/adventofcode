@@ -24,15 +24,6 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      - uses: s4u/maven-settings-action@v3.1.0
-        with:
-          servers: |
-            [{
-                "id": "github",
-                "username": "${{ secrets.USER_PACKAGE_READ }}",
-                "password": "${{ secrets.TOKEN_PACKAGE_READ }}"
-            }]
-
       - name: Build with Maven
         run: |
           mvn clean install
