@@ -16,6 +16,7 @@ root returns [ASD.Root out]
         lines.add($line.out);
     })* EOF {
         String[][] array = lines.stream()
+                        .filter(l -> !l.isEmpty())
                         .map(l -> l.toArray(String[]::new))
                         .toArray(String[][]::new);
         $out = new ASD.Root(array);
@@ -28,7 +29,8 @@ line returns [List<String> out]
     }
     : (value=CHAR {
         $out.add($value.text);
-    })* NEWLINE
+    })+ NEWLINE?
+    | NEWLINE
     ;
 
 CHAR
