@@ -30,7 +30,7 @@
             </plugin>
 
             <plugin>
-                <groupId>dev.vinyard.bp</groupId>
+                <groupId>dev.vinyard.blueprinter.maven</groupId>
                 <artifactId>blueprinter-maven-plugin</artifactId>
 
                 <executions>

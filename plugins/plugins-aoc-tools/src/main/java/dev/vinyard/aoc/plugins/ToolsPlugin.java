@@ -1,7 +1,7 @@
 package dev.vinyard.aoc.plugins;
 
-import dev.vinyard.bp.plugins.api.BluePrinterPlugin;
-import dev.vinyard.bp.plugins.api.PluginContext;
+import dev.vinyard.blueprinter.plugins.api.BluePrinterPlugin;
+import dev.vinyard.blueprinter.plugins.api.PluginContext;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

@@ -5,7 +5,7 @@ import dev.vinyard.aoc.plugins.core.SolutionInfo;
 import dev.vinyard.aoc.plugins.core.SolutionResult;
 import dev.vinyard.aoc.plugins.core.SolutionRetriever;
 import dev.vinyard.aoc.plugins.solution.api.Solution;
-import dev.vinyard.bp.plugins.api.BluePrinterExtension;
+import dev.vinyard.blueprinter.plugins.api.BluePrinterExtension;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.velocity.VelocityContext;
 import org.pf4j.Extension;
