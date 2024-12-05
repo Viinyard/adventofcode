@@ -33,7 +33,7 @@ jobs:
           git config user.name 'Viinyard'
           git config user.email 'viinyard@users.noreply.github.com'
           mvn clean package -DskipTests
-          mvn -pl solutions blueprinter:blueprint@readme
+          mvn -pl solutions blueprinter:blueprint@solution-of-day
           git add -A
           git commit -am "Solution for ${{ env.YEAR }}-${{ env.DAY }}"
 
