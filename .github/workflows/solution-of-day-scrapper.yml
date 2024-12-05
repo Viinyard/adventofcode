@@ -23,15 +23,6 @@ jobs:
           echo "DAY=$(date +'%d')" >> $GITHUB_ENV
           echo "AOC_SESSION_ID=${{ secrets.AOC_SESSION_ID }}" >> $GITHUB_ENV
 
-      - uses: s4u/maven-settings-action@v3.1.0
-        with:
-          servers: |
-            [{
-                "id": "github",
-                "username": "${{ secrets.USER_PACKAGE_READ }}",
-                "password": "${{ secrets.TOKEN_PACKAGE_READ }}"
-            }]
-
       - uses: actions/checkout@v4
       - name: Commit generated solution
         run: |
@@ -45,7 +36,6 @@ jobs:
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
         with:
-          token: ${{ secrets.PAT }}
           commit-message: "Solution for ${{ env.YEAR }}-${{ env.DAY }}"
           branch: "solution-${{ env.YEAR }}-${{ env.DAY }}"
           title: "Solution for ${{ env.YEAR }}-${{ env.DAY }}"
