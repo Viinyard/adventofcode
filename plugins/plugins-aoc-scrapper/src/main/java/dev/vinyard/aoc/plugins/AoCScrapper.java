@@ -1,6 +1,6 @@
 package dev.vinyard.aoc.plugins;
 
-import dev.vinyard.bp.plugins.api.BluePrinterExtension;
+import dev.vinyard.blueprinter.plugins.api.BluePrinterExtension;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;

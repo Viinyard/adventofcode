@@ -83,7 +83,7 @@
         </dependency>
 
         <dependency>
-            <groupId>dev.vinyard.bp.plugins.api</groupId>
+            <groupId>dev.vinyard.blueprinter.plugins.api</groupId>
             <artifactId>blueprinter-plugins-api</artifactId>
             <version>${plugins-api.version}</version>
             <!-- !!! VERY IMPORTANT -->
