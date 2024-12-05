@@ -40,6 +40,7 @@ jobs:
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
         with:
+          token: ${{ secrets.PAT }}
           commit-message: "Solution for ${{ env.YEAR }}-${{ env.DAY }}"
           branch: "solution-${{ env.YEAR }}-${{ env.DAY }}"
           title: "Solution for ${{ env.YEAR }}-${{ env.DAY }}"
