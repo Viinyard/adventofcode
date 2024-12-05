@@ -34,6 +34,7 @@ jobs:
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
         with:
+          token: ${{ secrets.PAT }}
           commit-message: "Next solution"
           branch: "next-solution"
           title: "Next solution"
