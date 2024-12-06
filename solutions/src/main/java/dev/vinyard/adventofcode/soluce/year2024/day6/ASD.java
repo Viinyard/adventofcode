@@ -2,36 +2,107 @@ package dev.vinyard.adventofcode.soluce.year2024.day6;
 
 import java.awt.*;
 import java.awt.geom.AffineTransform;
+import java.util.Arrays;
+import java.util.Optional;
 
 public class ASD {
 
     public record Root(Map map) {
 
+    }
+
+    public static abstract sealed class Entity permits Obstruction, Emplacement {
+
+        protected Optional<Guardian> guardian = Optional.empty();
+
+        Optional<Guardian> getGuardian() {
+            return guardian;
+        }
+
+        void setGuardian(Guardian guardian) {
+            throw new IllegalStateException();
+        }
 
     }
 
-    public sealed interface Entity permits Guardian, Obstruction, Emplacement {
+    public static final class Guardian {
 
-    }
+        private final Point position;
+        private AffineTransform affineTransform = AffineTransform.getQuadrantRotateInstance(0);
 
-    public record Map(Entity[][] grid) {}
+        public Guardian(Point position) {
+            this.position = position;
+        }
 
-    public record Guardian() implements Entity {
+        public void turnRight() {
+            affineTransform.quadrantRotate(1, position.x, position.y);
+        }
+
+        public boolean move(Map map) {
+            affineTransform.translate(0, -1);
+            affineTransform.transform(position, position);
+
+            System.out.println("Can move = " + map.getBounds().contains(position));
+            if (map.getBounds().contains(position)) {
+                try {
+                    map.getEntity(position).setGuardian(this);
+                } catch (IllegalStateException e) {
+                    System.err.println("CAN'T MOVE");
+                    turnRight();
+                }
+            } else {
+                return false;
+            }
+            return true;
+        }
+
+        public Point getPosition() {
+            return this.position;
+        }
+
         @Override
         public String toString() {
             return "^";
         }
     }
-    public record Obstruction() implements Entity {
+
+    public static final class Obstruction extends Entity {
         @Override
         public String toString() {
             return "#";
         }
     }
-    public record Emplacement() implements Entity {
+
+    public static final class Emplacement extends Entity {
+
+        @Override
+        void setGuardian(Guardian guardian) {
+            System.out.println("SET GUARDIAN");
+            this.guardian = Optional.of(guardian);
+        }
+
         @Override
         public String toString() {
-            return ".";
+            return this.guardian.map(Guardian::toString).orElse(".");
+        }
+    }
+
+    public record Map(Entity[][] grid) {
+
+        public Rectangle getBounds() {
+            return new Rectangle(grid[0].length, grid.length);
+        }
+
+        public Entity getEntity(Point point) {
+            return grid[point.y][point.x];
+        }
+
+        public Guardian findGuardian() {
+            return Arrays.stream(grid).flatMap(Arrays::stream)
+                    .map(Entity::getGuardian)
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .findAny().orElseThrow();
         }
     }
 

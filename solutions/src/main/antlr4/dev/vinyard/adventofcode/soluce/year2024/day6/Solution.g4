@@ -5,7 +5,7 @@ options {
 }
 
 @header {
-
+import java.awt.Point;
 }
 
 root returns [ASD.Root out]
@@ -15,7 +15,12 @@ root returns [ASD.Root out]
     ;
 
 map returns [ASD.Map out]
-    : rows+=row+ {
+		@init {
+			int rowNumber = 0;
+		}
+    : (rows+=row[rowNumber] {
+      rowNumber++;
+    } )+ {
         int numRows = $rows.size();
         int numCols = $rows.get(0).out.size();
         ASD.Entity[][] grid = new ASD.Entity[numRows][numCols];
@@ -27,22 +32,27 @@ map returns [ASD.Map out]
     | NEWLINE
     ;
 
-row returns [List<ASD.Entity> out]
+row[int rowNumber] returns [List<ASD.Entity> out]
 		@init {
 			$out = new ArrayList<>();
+			int colNumber = 0;
 		}
-    : (cell {
+    : (cell[rowNumber, colNumber] {
         $out.add($cell.entity);
+        colNumber++;
       })+ NEWLINE?
     ;
 
-cell returns [ASD.Entity entity]
-    : DOT { $entity = new ASD.Emplacement(); }
+cell[int rowNumber, int colNumber] returns [ASD.Entity entity]
+    : EMPLACEMENT { $entity = new ASD.Emplacement(); }
     | OBSTRUCTION { $entity = new ASD.Obstruction(); }
-    | GUARD { $entity = new ASD.Guardian(); }
+    | GUARD {
+        $entity = new ASD.Emplacement();
+        $entity.setGuardian(new ASD.Guardian(new Point(colNumber, rowNumber)));
+      }
     ;
 
-DOT
+EMPLACEMENT
 		: '.'
 		;
 

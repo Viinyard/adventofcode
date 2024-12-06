@@ -118,6 +118,21 @@ public class Day6Part1Solution implements Solution<Object> {
 
         Arrays.stream(root.map().grid()).map(Arrays::toString).forEach(System.out::println);
 
+        ASD.Guardian guardian = root.map().findGuardian();
+
+        System.out.println();
+        System.out.println(guardian.getPosition());
+
+        guardian.move(root.map());
+        guardian.move(root.map());
+        guardian.move(root.map());
+        guardian.move(root.map());
+
+        System.out.println(guardian.getPosition());
+        System.out.println();
+
+        Arrays.stream(root.map().grid()).map(Arrays::toString).forEach(System.out::println);
+
         return null;
     }
 }
