@@ -9,6 +9,7 @@ import org.antlr.v4.runtime.CommonTokenStream;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.Arrays;
 
 @AdventOfCodeSolution(year = 2024, day = 6, part = 1, description = "Guard Gallivant", link = "https://adventofcode.com/2024/day/6", tags = "unsolved")
 public class Day6Part1Solution implements Solution<Object> {
@@ -112,7 +113,10 @@ public class Day6Part1Solution implements Solution<Object> {
         SolutionLexer lexer = new SolutionLexer(charStream);
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         SolutionParser parser = new SolutionParser(tokens);
-        // TODO get the ASD from the parser
+
+        ASD.Root root = parser.root().out;
+
+        Arrays.stream(root.map().grid()).map(Arrays::toString).forEach(System.out::println);
 
         return null;
     }
