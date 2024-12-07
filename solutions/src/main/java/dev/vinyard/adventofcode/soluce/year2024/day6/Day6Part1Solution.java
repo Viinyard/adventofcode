@@ -113,6 +113,6 @@ public class Day6Part1Solution implements Solution<Object> {
 
         ASD.Guardian guardian = map.findGuardian();
 
-        return guardian.getVisitedPositions(map).stream().distinct().toList().size();
+        return guardian.getVisitedPositions(map).stream().map(ASD.Vector::position).distinct().toList().size();
     }
 }

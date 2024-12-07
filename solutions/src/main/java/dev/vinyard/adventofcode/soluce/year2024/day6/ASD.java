@@ -1,10 +1,10 @@
 package dev.vinyard.adventofcode.soluce.year2024.day6;
 
+import lombok.Getter;
+
 import java.awt.*;
 import java.awt.geom.AffineTransform;
-import java.util.List;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class ASD {
 
@@ -15,11 +15,10 @@ public class ASD {
         }
 
         public Entity getEntity(Point point) {
-            return Optional.of(point).filter(getBounds()::contains).map(p -> grid[p.y][p.x]).orElseThrow(GuardianOutOfBoundsException::new);
-        }
-
-        public Entity setEntity(Entity entity) {
-            return grid[entity.position.y][entity.position.x] = entity;
+            if (!getBounds().contains(point)) {
+                throw new GuardianOutOfBoundsException();
+            }
+            return grid[point.y][point.x];
         }
 
         public Guardian findGuardian() {
@@ -29,41 +28,9 @@ public class ASD {
                     .map(Optional::get)
                     .findAny().orElseThrow();
         }
-
-        public Map variant(Entity entity) {
-            Map copy = copy();
-
-            if (copy.getEntity(entity.position).getGuardian().isEmpty()) {
-                copy.grid[entity.position.y][entity.position.x] = entity;
-            } else {
-                return null;
-            }
-
-            return copy;
-        }
-
-        public Map copy() {
-            Map copy = new Map(new Entity[grid.length][grid[0].length]);
-
-            Arrays.stream(grid).flatMap(Arrays::stream).forEach(e -> {
-                Entity entity = switch (e) {
-                    case Obstruction o -> copy.setEntity(new Obstruction(e.position));
-                    case Emplacement em -> copy.setEntity(new Emplacement(e.position));
-                };
-
-                e.getGuardian().ifPresent(g -> entity.setGuardian(new Guardian()));
-            });
-
-            return copy;
-        }
-
-        @Override
-        public String toString() {
-            return Arrays.stream(grid).map(Arrays::stream).map(e -> e.map(Entity::toString).collect(Collectors.joining(""))).collect(Collectors.joining("\n"));
-        }
     }
 
-    public static abstract sealed class Entity permits Obstruction, Emplacement{
+    public static abstract sealed class Entity permits Obstruction, Emplacement {
 
         protected Guardian guardian;
         protected final Point position;
@@ -76,64 +43,88 @@ public class ASD {
             return Optional.ofNullable(guardian);
         }
 
-        void setGuardian(Guardian guardian) {
+        void move(Guardian guardian) {
             throw new GuardianIllegalMoveException();
+        }
+
+        void setGuardian(Guardian guardian) {
+            this.guardian = guardian;
         }
     }
 
     public static final class Guardian {
 
-        private Point position;
-        private int direction = 0;
+        @Getter
+        private Vector vector;
 
-        public void turnRight() {
-            direction = ++direction & 3;
+        private Entity obstruction;
+
+        private final Set<Vector> vectors = new HashSet<>();
+
+        public Guardian(Vector vector) {
+            this.vector = vector;
         }
 
-        private Point getNextPosition() {
-            Point move = new Point(position);
-            AffineTransform affineTransform = AffineTransform.getQuadrantRotateInstance(direction, position.x, position.y);
+        public Guardian obstruction(Entity obstruction) {
+            this.obstruction = obstruction;
+            return this;
+        }
+
+        public Guardian() {
+            this(new Vector(new Point(0, 0), 0));
+        }
+
+        public void turnRight() {
+            vector = new Vector(vector.position, vector.direction + 1 & 3);
+
+        }
+
+        public Vector getNextPosition() {
+            Point nextPosition = new Point(vector.position);
+            AffineTransform affineTransform = AffineTransform.getQuadrantRotateInstance(vector.direction, vector.position.x, vector.position.y);
             affineTransform.translate(0, -1);
-            affineTransform.transform(position, move);
-            return move;
+            affineTransform.transform(vector.position, nextPosition);
+            return new Vector(nextPosition, vector.direction);
+        }
+
+        private void setPosition(Point position) {
+            this.vector = new Vector(position, vector.direction);
+            if (vectors.contains(this.vector))
+                throw new GuardianInLoopException();
+            vectors.add(vector);
+        }
+
+        public Entity getEntity(Map map, Point position) {
+            return Optional.ofNullable(obstruction).filter(e -> Objects.equals(e.position, position)).orElseGet(() -> map.getEntity(position));
         }
 
         public void move(Map map) {
             try {
-                map.getEntity(getNextPosition()).setGuardian(this);
+                this.getEntity(map, getNextPosition().position).move(this);
             } catch (GuardianIllegalMoveException e) {
                 turnRight();
             }
         }
 
-        public List<Point> getVisitedPositions(Map map) {
-            List<Point> moves = new ArrayList<>();
-
+        public Set<Vector> getVisitedPositions(Map map) {
             try {
                 while (true) {
-                    moves.add(this.position);
                     move(map);
                 }
             } catch (GuardianOutOfBoundsException e) {
-                return moves;
+                return vectors;
             }
-
         }
 
         public boolean isStuck(Map map) {
 
             try {
-                getVisitedPositions(map);
+                this.getVisitedPositions(map);
             } catch (GuardianInLoopException e) {
                 return true;
             }
 
             return false;
-        }
-
-        @Override
-        public String toString() {
-            return "^";
         }
     }
 
@@ -142,45 +133,25 @@ public class ASD {
         public Obstruction(Point position) {
             super(position);
         }
-
-        @Override
-        public String toString() {
-            return "#";
-        }
     }
 
     public static final class Emplacement extends Entity {
-
-        private final Set<Integer> directions = new HashSet<>();
 
         public Emplacement(Point position) {
             super(position);
         }
 
-        private void addDirection(int direction) {
-            if (directions.contains(direction))
-                throw new GuardianInLoopException();
-
-            directions.add(direction);
+        @Override
+        void move(Guardian guardian) {
+            guardian.setPosition(position);
         }
 
         @Override
-        void setGuardian(Guardian guardian) {
-            guardian.position = this.position;
-            this.addDirection(guardian.direction);
+        public void setGuardian(Guardian guardian) {
             this.guardian = guardian;
-        }
-
-        @Override
-        public String toString() {
-            return getGuardian().map(Guardian::toString).orElseGet(() -> directions.stream().map(dir -> switch (dir) {
-                case 0, 2 -> "|";
-                case 1, 3 -> "-";
-                default -> throw new IllegalStateException("Unexpected value: " + dir);
-            }).distinct().reduce((a, b) -> "+").orElse("."));
+            guardian.setPosition(position);
         }
     }
-
 
 
     public static class GuardianInLoopException extends RuntimeException {
@@ -201,4 +172,5 @@ public class ASD {
         }
     }
 
+    public record Vector(Point position, int direction) {}
 }
