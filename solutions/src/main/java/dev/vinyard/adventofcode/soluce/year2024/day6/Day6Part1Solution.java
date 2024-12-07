@@ -2,14 +2,9 @@ package dev.vinyard.adventofcode.soluce.year2024.day6;
 
 import dev.vinyard.aoc.plugins.solution.api.Solution;
 import dev.vinyard.aoc.plugins.solution.api.annotation.AdventOfCodeSolution;
-import dev.vinyard.adventofcode.utils.FileReader;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
-
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.util.Arrays;
 
 @AdventOfCodeSolution(year = 2024, day = 6, part = 1, description = "Guard Gallivant", link = "https://adventofcode.com/2024/day/6", tags = "unsolved")
 public class Day6Part1Solution implements Solution<Object> {
@@ -114,25 +109,10 @@ public class Day6Part1Solution implements Solution<Object> {
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         SolutionParser parser = new SolutionParser(tokens);
 
-        ASD.Root root = parser.root().out;
+        ASD.Map map = parser.root().out;
 
-        Arrays.stream(root.map().grid()).map(Arrays::toString).forEach(System.out::println);
+        ASD.Guardian guardian = map.findGuardian();
 
-        ASD.Guardian guardian = root.map().findGuardian();
-
-        System.out.println();
-        System.out.println(guardian.getPosition());
-
-        guardian.move(root.map());
-        guardian.move(root.map());
-        guardian.move(root.map());
-        guardian.move(root.map());
-
-        System.out.println(guardian.getPosition());
-        System.out.println();
-
-        Arrays.stream(root.map().grid()).map(Arrays::toString).forEach(System.out::println);
-
-        return null;
+        return guardian.getVisitedPositions(map).size();
     }
 }
