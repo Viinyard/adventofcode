@@ -2,10 +2,8 @@ package dev.vinyard.adventofcode.soluce.year2024.day6;
 
 import java.awt.*;
 import java.awt.geom.AffineTransform;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
+import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class ASD {
@@ -20,6 +18,10 @@ public class ASD {
             return Optional.of(point).filter(getBounds()::contains).map(p -> grid[p.y][p.x]).orElseThrow(GuardianOutOfBoundsException::new);
         }
 
+        public Entity setEntity(Entity entity) {
+            return grid[entity.position.y][entity.position.x] = entity;
+        }
+
         public Guardian findGuardian() {
             return Arrays.stream(grid).flatMap(Arrays::stream)
                     .map(Entity::getGuardian)
@@ -28,13 +30,40 @@ public class ASD {
                     .findAny().orElseThrow();
         }
 
+        public Map variant(Entity entity) {
+            Map copy = copy();
+
+            if (copy.getEntity(entity.position).getGuardian().isEmpty()) {
+                copy.grid[entity.position.y][entity.position.x] = entity;
+            } else {
+                return null;
+            }
+
+            return copy;
+        }
+
+        public Map copy() {
+            Map copy = new Map(new Entity[grid.length][grid[0].length]);
+
+            Arrays.stream(grid).flatMap(Arrays::stream).forEach(e -> {
+                Entity entity = switch (e) {
+                    case Obstruction o -> copy.setEntity(new Obstruction(e.position));
+                    case Emplacement em -> copy.setEntity(new Emplacement(e.position));
+                };
+
+                e.getGuardian().ifPresent(g -> entity.setGuardian(new Guardian()));
+            });
+
+            return copy;
+        }
+
         @Override
         public String toString() {
             return Arrays.stream(grid).map(Arrays::stream).map(e -> e.map(Entity::toString).collect(Collectors.joining(""))).collect(Collectors.joining("\n"));
         }
     }
 
-    public static abstract sealed class Entity permits Obstruction, Emplacement {
+    public static abstract sealed class Entity permits Obstruction, Emplacement{
 
         protected Guardian guardian;
         protected final Point position;
@@ -50,7 +79,6 @@ public class ASD {
         void setGuardian(Guardian guardian) {
             throw new GuardianIllegalMoveException();
         }
-
     }
 
     public static final class Guardian {
@@ -78,8 +106,8 @@ public class ASD {
             }
         }
 
-        public Set<Point> getVisitedPositions(Map map) {
-            Set<Point> moves = new HashSet<>();
+        public List<Point> getVisitedPositions(Map map) {
+            List<Point> moves = new ArrayList<>();
 
             try {
                 while (true) {
@@ -87,9 +115,20 @@ public class ASD {
                     move(map);
                 }
             } catch (GuardianOutOfBoundsException e) {
-                System.out.println(map);
                 return moves;
             }
+
+        }
+
+        public boolean isStuck(Map map) {
+
+            try {
+                getVisitedPositions(map);
+            } catch (GuardianInLoopException e) {
+                return true;
+            }
+
+            return false;
         }
 
         @Override

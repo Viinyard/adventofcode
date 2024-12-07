@@ -113,6 +113,6 @@ public class Day6Part1Solution implements Solution<Object> {
 
         ASD.Guardian guardian = map.findGuardian();
 
-        return guardian.getVisitedPositions(map).size();
+        return guardian.getVisitedPositions(map).stream().distinct().toList().size();
     }
 }
