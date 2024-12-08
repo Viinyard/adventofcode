@@ -34,7 +34,7 @@ public class Day7Part2Solution implements Solution<Object> {
 
         List<ASD.Equation> equations = parser.root().out.equations();
 
-        return equations.stream().mapToLong(e -> e.solve(
+        return equations.parallelStream().mapToLong(e -> e.solve(
                 Long::sum,
             (left, right) -> left * right,
             (left, right) -> Long.parseLong(left + "" + right)
