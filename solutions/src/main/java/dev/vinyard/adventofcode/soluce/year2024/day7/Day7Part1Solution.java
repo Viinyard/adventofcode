@@ -2,13 +2,11 @@ package dev.vinyard.adventofcode.soluce.year2024.day7;
 
 import dev.vinyard.aoc.plugins.solution.api.Solution;
 import dev.vinyard.aoc.plugins.solution.api.annotation.AdventOfCodeSolution;
-import dev.vinyard.adventofcode.utils.FileReader;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
+import java.util.List;
 
 @AdventOfCodeSolution(year = 2024, day = 7, part = 1, description = "Bridge Repair", link = "https://adventofcode.com/2024/day/7", tags = "unsolved")
 public class Day7Part1Solution implements Solution<Object> {
@@ -48,8 +46,9 @@ public class Day7Part1Solution implements Solution<Object> {
         SolutionLexer lexer = new SolutionLexer(charStream);
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         SolutionParser parser = new SolutionParser(tokens);
-        // TODO get the ASD from the parser
 
-        return null;
+        List<ASD.Equation> equations = parser.root().out.equations();
+
+        return equations.stream().mapToLong(ASD.Equation::solve).sum();
     }
 }
