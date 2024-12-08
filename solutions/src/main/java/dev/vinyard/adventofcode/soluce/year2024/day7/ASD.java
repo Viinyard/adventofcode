@@ -20,10 +20,7 @@ public class ASD {
             if (index == values.size())
                 return Objects.equals(currentValue, result);
 
-            long nextValue = values.get(index);
-
-            return Arrays.stream(operators).map(op -> op.apply(currentValue, nextValue)).anyMatch(value -> isSolved(value, index+1, operators));
+            return Arrays.stream(operators).map(op -> op.apply(currentValue, values.get(index))).anyMatch(value -> isSolved(value, index+1, operators));
         }
     }
-
 }
