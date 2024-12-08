@@ -3,9 +3,11 @@ package dev.vinyard.adventofcode.soluce.year2024.day8;
 import lombok.Getter;
 
 import java.awt.*;
+import java.awt.geom.AffineTransform;
+import java.util.Arrays;
 import java.util.List;
-import java.util.*;
-import java.util.function.BiFunction;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class ASD {
@@ -28,28 +30,16 @@ public class ASD {
             return new Rectangle(grid[0].length, grid.length);
         }
 
-        public Optional<Entity> getEntity(Point position) {
+        public Optional<Entity> getEntityAt(Point position) {
             return Optional.of(position).filter(getBounds()::contains).map(p -> grid[p.y][p.x]);
         }
 
-        public Root reducingAntennas() {
-            BiFunction<Point, Point, Point> getSymmetricPoint = (a, b) -> new Point(2 * b.x - a.x, 2 * b.y - a.y);
-            getAllAntennasByFrequencies().values().forEach(antennas -> {
-                antennas.forEach(a -> antennas.stream()
-                        .filter(b -> !Objects.equals(a, b))
-                        .map(b -> getSymmetricPoint.apply(a.position, b.position))
-                        .map(this::getEntity)
-                        .filter(Optional::isPresent)
-                        .map(Optional::get)
-                        .forEach(e -> e.addAntinode(a.frequency)));
-            });
-
-
-            return this;
-        }
-
+        /**
+         * Count the number of entities that are antinodes in the grid.
+         * @return number of antinodes in the grid
+         */
         public long countAntinodes() {
-            return findAllEntities().stream().map(Entity::getAntinodes).filter(s -> !s.isEmpty()).count();
+            return findAllEntities().stream().filter(Entity::isAntinode).count();
         }
 
         @Override
@@ -58,24 +48,44 @@ public class ASD {
         }
     }
 
+
+    @Getter
     public abstract static class Entity {
 
         protected final Point position;
 
-        @Getter
-        protected final Set<String> antinodes = new HashSet<>();
+        protected boolean antinode = false;
 
         public Entity(Point position) {
             this.position = position;
         }
 
-        public void addAntinode(String frequency) {
-            antinodes.add(frequency);
+        public void setAntinode() {
+            this.antinode = true;
+        }
+
+        /**
+         * Calculate the translation between the entity position from the given position.
+         * @param position the position to translate from
+         * @return the translation
+         */
+        public AffineTransform getTransform(Point position) {
+            return AffineTransform.getTranslateInstance(this.position.x - position.x, this.position.y - position.y);
+        }
+
+        /**
+         * Calculate the transformed position of the entity from the given position then apply the transformation from the given position.
+         * It's equivalent to calculate the symmetrical position of the entity from the given position.
+         * @param position the position to translate from
+         * @return the translated position of the given position from the entity position
+         */
+        public Point getTransformedPosition(Point position) {
+            return (Point) getTransform(position).transform(this.position, new Point());
         }
 
         @Override
         public String toString() {
-            return antinodes.isEmpty() ? "." : "#";
+            return antinode ? "#" : ".";
         }
     }
 
@@ -85,9 +95,9 @@ public class ASD {
         }
     }
 
+    @Getter
     public static class Antenna extends Entity {
 
-        @Getter
         private final String frequency;
 
         public Antenna(Point position, String frequency) {

@@ -6,6 +6,9 @@ import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 
+import java.util.Objects;
+import java.util.Optional;
+
 @AdventOfCodeSolution(year = 2024, day = 8, part = 1, description = "Resonant Collinearity", link = "https://adventofcode.com/2024/day/8", tags = "unsolved")
 public class Day8Part1Solution implements Solution<Object> {
 
@@ -96,6 +99,15 @@ public class Day8Part1Solution implements Solution<Object> {
 
         ASD.Root root = parser.root().out;
 
-        return root.reducingAntennas().countAntinodes();
+        root.findAllAntennas().forEach(a -> root.getAllAntennasByFrequencies().get(a.getFrequency()).stream()
+                .filter(b -> !Objects.equals(a, b)) // Equivalent of distance between two antennas > 0
+                .map(ASD.Antenna::getPosition)
+                .map(a::getTransformedPosition)
+                .map(root::getEntityAt)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .forEach(ASD.Entity::setAntinode));
+
+        return root.countAntinodes();
     }
 }
