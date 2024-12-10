@@ -5,8 +5,6 @@ options {
 }
 
 @header {
-import java.util.stream.Stream;
-import java.util.stream.Collectors;
 }
 
 root returns [ASD.DiskMap out]
@@ -21,22 +19,22 @@ disk returns [List<ASD.File> out]
         int ID = 0;
     }
     : ((file[ID] {
-        $out.addAll($file.out);
+        $out.add($file.out);
         ID++;
     }) (freeSpace {
-        $out.addAll($freeSpace.out);
+        $out.add($freeSpace.out);
     })?)+
     ;
 
-file[int ID] returns [List<ASD.File> out]
+file[int ID] returns [ASD.File out]
     : value=DIGIT {
-        $out = Stream.generate(() -> new ASD.File(ID)).limit(Integer.parseInt($value.text)).toList();
+        $out = new ASD.File(Integer.valueOf($value.text), ID);
     }
     ;
 
-freeSpace returns [List<ASD.File> out]
+freeSpace returns [ASD.File out]
     : value=DIGIT {
-        $out = Stream.generate(() -> new ASD.File(null)).limit(Integer.parseInt($value.text)).toList();
+        $out = new ASD.File(Integer.valueOf($value.text));
     }
     ;
 
