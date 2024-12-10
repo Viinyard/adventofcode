@@ -5,18 +5,47 @@ options {
 }
 
 @header {
-
+import java.util.stream.Stream;
+import java.util.stream.Collectors;
 }
 
-root returns [ASD.Root out]
-    :
+root returns [ASD.DiskMap out]
+    : disk NEWLINE*? {
+        $out = new ASD.DiskMap($disk.out);
+    }
     ;
 
-INT
-    // integer part forbis leading 0s (e.g. `01`)
-    : '0' | [1-9][0-9]*
+disk returns [List<ASD.File> out]
+    @init {
+        $out = new ArrayList<>();
+        int ID = 0;
+    }
+    : ((file[ID] {
+        $out.addAll($file.out);
+        ID++;
+    }) (freeSpace {
+        $out.addAll($freeSpace.out);
+    })?)+
     ;
+
+file[int ID] returns [List<ASD.File> out]
+    : value=DIGIT {
+        $out = Stream.generate(() -> new ASD.File(ID)).limit(Integer.parseInt($value.text)).toList();
+    }
+    ;
+
+freeSpace returns [List<ASD.File> out]
+    : value=DIGIT {
+        $out = Stream.generate(() -> new ASD.File(null)).limit(Integer.parseInt($value.text)).toList();
+    }
+    ;
+
+DIGIT
+    : [0-9]
+    ;
+
+NEWLINE : '\r'? '\n' ;
 
 WS
-    : [ \t\n\r]+ -> skip
+    : [ \t]+ -> skip
     ;
