@@ -35,11 +35,7 @@ public class Day9Part2Solution implements Solution<Object> {
 
         ASD.DiskMap diskMap = parser.root().out;
 
-        System.out.println(diskMap);
-
         diskMap.compressWithoutFragmentation();
-
-        System.out.println(diskMap);
 
         return diskMap.checksum();
     }

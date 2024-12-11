@@ -13,28 +13,28 @@ root returns [ASD.DiskMap out]
     }
     ;
 
-disk returns [List<ASD.File> out]
+disk returns [List<ASD.Partition> out]
     @init {
         $out = new ArrayList<>();
-        int ID = 0;
+        long ID = 0;
     }
     : ((file[ID] {
         $out.add($file.out);
         ID++;
-    }) (freeSpace {
-        $out.add($freeSpace.out);
+    }) (partition {
+        $out.add($partition.out);
     })?)+
     ;
 
-file[int ID] returns [ASD.File out]
+file[long ID] returns [ASD.Partition out]
     : value=DIGIT {
-        $out = new ASD.File(Integer.valueOf($value.text), ID);
+        $out = new ASD.Partition(Integer.valueOf($value.text)).withFile(ID);
     }
     ;
 
-freeSpace returns [ASD.File out]
+partition returns [ASD.Partition out]
     : value=DIGIT {
-        $out = new ASD.File(Integer.valueOf($value.text));
+        $out = new ASD.Partition(Integer.valueOf($value.text));
     }
     ;
 
