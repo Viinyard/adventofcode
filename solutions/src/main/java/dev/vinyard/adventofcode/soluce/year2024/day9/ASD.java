@@ -40,7 +40,7 @@ public class ASD {
         }
 
         public void compressWithoutFragmentation() {
-            LinkedList<File> orderedFiles = disk.stream().collect(Collectors.toCollection(LinkedList::new));
+            LinkedList<File> orderedFiles = new LinkedList<>(disk);
 
             while (!orderedFiles.isEmpty()) {
                 File file = orderedFiles.pollLast();
@@ -49,11 +49,11 @@ public class ASD {
                     orderedFiles.stream().filter(f -> !f.isUsed()).filter(f -> f.getFreeSpace() >= file.size).findFirst().ifPresent(f -> f.move(file.getPartition()));
             }
 
-            this.disk = disk.stream().peek(File::flatten).map(File::getPartition).flatMap(LinkedList::stream).collect(Collectors.toCollection(LinkedList::new));
+            this.disk = disk.stream().peek(File::flatten).map(File::getPartition).flatMap(LinkedList::stream).toList();
         }
 
         public long checksum() {
-            return Stream.iterate(0, i -> i + 1).limit(disk.size()).mapToLong(i -> disk.get(i).isUsed() ? (long) i * disk.get(i).ID : 0).sum();
+            return Stream.iterate(0, i -> i + 1).limit(disk.size()).parallel().mapToLong(i -> disk.get(i).isUsed() ? (long) i * disk.get(i).ID : 0).sum();
         }
 
         @Override
