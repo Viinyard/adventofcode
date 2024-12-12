@@ -1,26 +1,4 @@
-    AAAA
-BBCD
-BBCC
-EEEC
-    +-+-+-+-+
-|A A A A|
-+-+-+-+-+     +-+
-              |D|
-+-+-+   +-+   +-+
-|B B|   |C|
-+   +   + +-+
-|B B|   |C C|
-+-+-+   +-+ +
-          |C|
-+-+-+-+   +-+
-|E E E|
-+-+-+-+
-    OOOOO
-OXOXO
-OOOOO
-OXOXO
-OOOOO
-    RRRRIICCFF
+RRRRIICCFF
 RRRRIICCCF
 VVRRRCCFFF
 VVRCCCJFFF
