@@ -6,6 +6,7 @@ import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.util.List;
 import java.util.*;
+import java.util.stream.Stream;
 
 public class ASD {
 
@@ -22,16 +23,12 @@ public class ASD {
             return new Rectangle(grid[0].length, grid.length);
         }
 
-        public Plant getPlantAt(Point point) {
-            return Optional.of(point).filter(getBounds()::contains).map(p -> grid[p.y][p.x]).orElse(null);
+        public Optional<Plant> getPlantAt(Point point) {
+            return Optional.of(point).filter(getBounds()::contains).map(p -> grid[p.y][p.x]);
         }
 
         public List<Plant> getPlants() {
             return Arrays.stream(grid).flatMap(Arrays::stream).toList();
-        }
-
-        public long getFences() {
-            return getPlants().stream().map(Plant::getRegion).mapToLong(region -> region.stream().mapToLong(Plant::countFence).sum() * region.size()).sum();
         }
     }
 
@@ -41,7 +38,8 @@ public class ASD {
         private final Point point;
         private final String name;
         private boolean visited;
-        private List<Plant> neighbors;
+        private Map<Direction, Plant> neighbors = new HashMap<>();
+        private Map<Direction, Plant> diagonalNeighbors = new HashMap<>();
 
         public Plant(Point point, String name) {
             this.point = point;
@@ -53,12 +51,8 @@ public class ASD {
         }
 
         public void setNeighbors(Garden garden) {
-            this.neighbors = Arrays.stream(Direction.values())
-                    .map(d -> d.move(point))
-                    .map(garden::getPlantAt)
-                    .filter(Objects::nonNull)
-                    .filter(this::isSame)
-                    .toList();
+            Stream.of(Direction.NORTH, Direction.WEST, Direction.EAST, Direction.SOUTH).forEach(d -> garden.getPlantAt(d.move(point)).filter(this::isSame).ifPresent(p -> neighbors.put(d, p)));
+            Stream.of(Direction.NORTH_EAST, Direction.NORTH_WEST, Direction.SOUTH_EAST, Direction.SOUTH_WEST).forEach(d -> garden.getPlantAt(d.move(point)).filter(this::isSame).ifPresent(p -> diagonalNeighbors.put(d, p)));
         }
 
         public List<Plant> getRegion() {
@@ -72,7 +66,7 @@ public class ASD {
 
                 if (!current.isVisited()) {
                     current.visited = true;
-                    current.getNeighbors().stream().filter(p -> !p.visited).forEach(stack::push);
+                    current.getNeighbors().values().stream().filter(p -> !p.visited).forEach(stack::push);
                     region.add(current);
                 }
             }
@@ -80,16 +74,45 @@ public class ASD {
             return region;
         }
 
-        public long countFence() {
+        public long countSides() {
             return 4 - neighbors.size();
+        }
+
+        public long countEdges() {
+            long edge = 0;
+            if (neighbors.keySet().stream().noneMatch(direction -> List.of(Direction.EAST, Direction.SOUTH).contains(direction))
+            || !diagonalNeighbors.containsKey(Direction.SOUTH_EAST) && neighbors.keySet().containsAll(List.of(Direction.EAST, Direction.SOUTH))) {
+                edge++;
+            }
+
+            if (neighbors.keySet().stream().noneMatch(direction -> List.of(Direction.SOUTH, Direction.WEST).contains(direction))
+            || !diagonalNeighbors.containsKey(Direction.SOUTH_WEST) && neighbors.keySet().containsAll(List.of(Direction.SOUTH, Direction.WEST))) {
+                edge++;
+            }
+
+            if (neighbors.keySet().stream().noneMatch(direction -> List.of(Direction.WEST, Direction.NORTH).contains(direction))
+            || !diagonalNeighbors.containsKey(Direction.NORTH_WEST) && neighbors.keySet().containsAll(List.of(Direction.WEST, Direction.NORTH))) {
+                edge++;
+            }
+
+            if (neighbors.keySet().stream().noneMatch(direction -> List.of(Direction.NORTH, Direction.EAST).contains(direction))
+            || !diagonalNeighbors.containsKey(Direction.NORTH_EAST) && neighbors.keySet().containsAll(List.of(Direction.NORTH, Direction.EAST))) {
+                edge++;
+            }
+
+            return edge;
         }
     }
 
     public enum Direction {
         NORTH(270),
+        NORTH_EAST(315),
         EAST(0),
+        SOUTH_EAST(45),
         SOUTH(90),
-        WEST(180);
+        SOUTH_WEST(135),
+        WEST(180),
+        NORTH_WEST(225);
 
         final double rotation;
 

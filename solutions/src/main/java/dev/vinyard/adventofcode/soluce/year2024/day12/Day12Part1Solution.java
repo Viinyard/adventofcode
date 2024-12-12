@@ -93,6 +93,6 @@ public class Day12Part1Solution implements Solution<Object> {
 
         ASD.Garden garden = parser.root().out;
 
-        return garden.getFences();
+        return garden.getPlants().stream().map(ASD.Plant::getRegion).mapToLong(region -> region.stream().mapToLong(ASD.Plant::countSides).sum() * region.size()).sum();
     }
 }
