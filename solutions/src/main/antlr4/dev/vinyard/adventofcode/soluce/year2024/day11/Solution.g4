@@ -5,11 +5,19 @@ options {
 }
 
 @header {
-
+import java.util.function.Function;
+import java.util.stream.Collectors;
 }
 
 root returns [ASD.Root out]
-    :
+    @init {
+        List<Long> reports = new ArrayList<>();
+    }
+    : (INT {
+        reports.add(Long.parseLong($INT.text));
+    })+ EOF {
+        $out = new ASD.Root(reports.stream().collect(Collectors.groupingBy(Function.identity(), Collectors.counting())));
+    }
     ;
 
 INT
