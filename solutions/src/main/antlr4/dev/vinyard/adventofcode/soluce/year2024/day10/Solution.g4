@@ -9,9 +9,9 @@ import java.awt.Point;
 }
 
 root returns [ASD.TopographicMap out]
-		@init {
-			int rowNumber = 0;
-		}
+	@init {
+		int rowNumber = 0;
+	}
     : (rows+=row[rowNumber] {
       rowNumber++;
     })+ NEWLINE*? EOF {
