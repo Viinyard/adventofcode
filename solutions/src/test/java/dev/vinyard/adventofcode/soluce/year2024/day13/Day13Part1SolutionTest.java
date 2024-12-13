@@ -19,7 +19,7 @@ public class Day13Part1SolutionTest extends BaseTest<Object> {
             Arguments.of("soluce/year2024/day13/part1/test.txt", 480L, null, null),
             Arguments.of("soluce/year2024/day13/part1/test1.txt", 280L, null, null),
             Arguments.of("soluce/year2024/day13/part1/test2.txt", 200L, null, null),
-            Arguments.of("soluce/year2024/day13/input.txt", null, null, null)
+            Arguments.of("soluce/year2024/day13/input.txt", 39748L, null, null)
         );
     }
 }

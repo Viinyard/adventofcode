@@ -32,7 +32,7 @@ public class ASD {
 
         public double solve() {
             if (a.x * b.y == a.y * b.x)
-                return 0;
+                throw new IllegalStateException();
 
             double A = (p.x * b.y - p.y * b.x) / (a.x * b.y - a.y * b.x);
             double B = (p.x - a.x * A) / b.x;
