@@ -11,5 +11,5 @@ public interface Solution<T> {
      * @param input Content of the input file (the puzzle).
      * @return The solution.
      */
-    T solve(String input) throws InterruptedException;
+    T solve(String input);
 }

@@ -17,7 +17,7 @@ public class Day14Part2Solution implements Solution<Object> {
      * <p><b>What is the fewest number of seconds that must elapse for the robots to display the Easter egg?</b></p>
      */
     @Override
-    public Object solve(String input) throws InterruptedException {
+    public Object solve(String input) {
         CharStream charStream = CharStreams.fromString(input);
 
         SolutionLexer lexer = new SolutionLexer(charStream);
