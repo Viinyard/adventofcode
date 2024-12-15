@@ -1,14 +1,11 @@
 package dev.vinyard.adventofcode.soluce.year2023.day10;
 
+import dev.vinyard.adventofcode.utils.PathUtils;
 import dev.vinyard.aoc.plugins.solution.api.Solution;
 import dev.vinyard.aoc.plugins.solution.api.annotation.AdventOfCodeSolution;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
-
-import javax.swing.*;
-import java.awt.*;
-import java.awt.geom.Path2D;
 
 @AdventOfCodeSolution(year = 2023, day = 10, part = 1, description = "Pipe Maze", link = "https://adventofcode.com/2023/day/10", tags = "unsolved")
 public class Day10Part1Solution implements Solution<Object> {
@@ -119,30 +116,6 @@ public class Day10Part1Solution implements Solution<Object> {
 
         ASD.Root root = parser.root().out;
 
-        ASD.Animal animal = root.findAnimal();
-
-        Path2D path2D = animal.getPath(root);
-
-        JFrame frame = new JFrame();
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.add(new JPanel() {
-            @Override
-            protected void paintComponent(java.awt.Graphics g) {
-                super.paintComponent(g);
-                g.setColor(java.awt.Color.BLACK);
-                ((java.awt.Graphics2D) g).fill(path2D);
-                g.setColor(java.awt.Color.RED);
-                ((Graphics2D) g).setStroke(new BasicStroke(6));
-                ((java.awt.Graphics2D) g).draw(path2D);
-                ((Graphics2D) g).setStroke(new BasicStroke(1));
-            }
-        });
-
-        frame.setSize(1200, 1200);
-        frame.setVisible(true);
-
-        JOptionPane.showMessageDialog(frame, "Click OK to close");
-
-        return animal.countUnvisitedInPath(root, path2D);
+        return Math.ceilDiv((long) PathUtils.getLength(root.findAnimal().getPath(root)), 2);
     }
 }
