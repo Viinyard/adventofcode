@@ -5,11 +5,14 @@ options {
 }
 
 @header {
+import java.awt.Rectangle;
 import java.awt.Point;
+import java.awt.Dimension;
+import java.util.Objects;
 }
 
-root returns [ASD.Root out]
-    : map NEWLINE*? moves NEWLINE*? EOF {
+root[Dimension dimension] returns [ASD.Root out]
+    : map[dimension] NEWLINE*? moves NEWLINE*? EOF {
         $out = new ASD.Root($map.out, $moves.out);
     }
     ;
@@ -30,42 +33,36 @@ move returns [ASD.Direction out]
     | RIGHT { $out = ASD.Direction.RIGHT; }
     ;
 
-map returns [ASD.Warehouse out]
+map[Dimension dimension] returns [ASD.Warehouse out]
     @init {
         int y = 0;
     }
-    : (rows+=row[y] {
-        y++;
+    : (rows+=row[y, dimension] {
+        y+= dimension.height;
     })* {
-        int numRows = $rows.size();
-        int numCols = $rows.get(0).out.size();
-        ASD.Entity[][] grid = new ASD.Entity[numRows][numCols];
-        for (int i = 0; i < numRows; i++) {
-            grid[i] = $rows.get(i).out.toArray(new ASD.Entity[0]);
-        }
-        $out = new ASD.Warehouse(grid);
+        $out = new ASD.Warehouse($rows.stream().map(row -> row.out).flatMap(List::stream).filter(Objects::nonNull).toList());
     }
     ;
 
-row[int y] returns [List<ASD.Entity> out]
+row[int y, Dimension dimension] returns [List<ASD.Entity> out]
     @init {
         $out = new ArrayList();
         int x = 0;
     }
-    : (entity[x, y] {
+    : (entity[x, y, dimension] {
         $out.add($entity.out);
-        x++;
+        x+= dimension.width;
     })* NEWLINE
     ;
 
-entity [int x, int y] returns [ASD.Entity out]
+entity [int x, int y, Dimension dimension] returns [ASD.Entity out]
     @init {
         Point position = new Point(x, y);
     }
-    : WALL { $out = new ASD.Wall(position); }
-    | EMPTY { $out = new ASD.Empty(position); }
-    | BOX { $out = new ASD.Box(position); }
-    | PLAYER { $out = new ASD.Player(position); }
+    : WALL { $out = new ASD.Wall(new Rectangle(position, dimension)); }
+    | EMPTY { $out = null; }
+    | BOX { $out = new ASD.Box(new Rectangle(position, dimension)); }
+    | PLAYER { $out = new ASD.Player(new Rectangle(position, new Dimension(1, 1))); }
     ;
 
 WALL

@@ -6,6 +6,8 @@ import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 
+import java.awt.*;
+
 @AdventOfCodeSolution(year = 2024, day = 15, part = 1, description = "Warehouse Woes", link = "https://adventofcode.com/2024/day/15", tags = "unsolved")
 public class Day15Part1Solution implements Solution<Object> {
 
@@ -249,15 +251,11 @@ public class Day15Part1Solution implements Solution<Object> {
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         SolutionParser parser = new SolutionParser(tokens);
 
-        ASD.Root root = parser.root().out;
-
-        System.out.println(root.warehouse());
+        ASD.Root root = parser.root(new Dimension(1, 1)).out;
 
         ASD.Player player = root.warehouse().findPlayer().orElseThrow(() -> new IllegalStateException("Player not found"));
 
         root.moves().forEach(direction -> player.move(root.warehouse(), direction));
-
-        System.out.println(root.warehouse());
 
         return root.warehouse().getScore();
     }
