@@ -109,6 +109,6 @@ public class Day11Part1Solution implements Solution<Object> {
 
         ASD.Root root = parser.root().out;
 
-        return root.calculateSumOfShortestPathBetweenEveryPairOfGalaxies();
+        return root.calculateSumOfShortestPathBetweenEveryPairOfGalaxies(2);
     }
 }
