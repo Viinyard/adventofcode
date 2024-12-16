@@ -47,7 +47,6 @@
                         <configuration>
                             <arguments>
                                 <argument>next-antlr-solution</argument>
-                                <argument>--YEAR=2023</argument>
                             </arguments>
                         </configuration>
                     </execution>
