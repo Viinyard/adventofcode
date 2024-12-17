@@ -3,8 +3,10 @@ package dev.vinyard.adventofcode.soluce.year2024.day16;
 import lombok.Data;
 import lombok.Getter;
 import org.jgrapht.Graph;
+import org.jgrapht.GraphPath;
 import org.jgrapht.alg.interfaces.ShortestPathAlgorithm;
 import org.jgrapht.alg.shortestpath.AStarShortestPath;
+import org.jgrapht.alg.shortestpath.EppsteinShortestPathIterator;
 import org.jgrapht.graph.DefaultWeightedEdge;
 import org.jgrapht.graph.builder.GraphTypeBuilder;
 
@@ -14,6 +16,7 @@ import java.util.List;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class ASD {
 
@@ -32,8 +35,8 @@ public class ASD {
         }
 
         public static Graph<Node, DefaultWeightedEdge> createEmptyGraph() {
-            return GraphTypeBuilder.<Node, DefaultWeightedEdge>undirected()
-                    .allowingMultipleEdges(true)
+            return GraphTypeBuilder.<Node, DefaultWeightedEdge>directed()
+                    .allowingMultipleEdges(false)
                     .allowingSelfLoops(false)
                     .edgeClass(DefaultWeightedEdge.class)
                     .weighted(true)
@@ -88,6 +91,52 @@ public class ASD {
             ShortestPathAlgorithm<Node, DefaultWeightedEdge> aStarShortestPath = new AStarShortestPath<>(graph, (node, v1) -> node.getPosition().distance(v1.getPosition()));
 
             return (long) aStarShortestPath.getPath(startNode, endNode).getWeight();
+        }
+
+        public static List<List<Node>> findAllPaths(Graph<Node, DefaultWeightedEdge> graph, Node startNode, Node endNode) {
+            List<List<Node>> allPaths = new ArrayList<>();
+            List<Node> currentPath = new ArrayList<>();
+            currentPath.add(startNode);
+            findAllPathsUtil(graph, startNode, endNode, currentPath, allPaths);
+            return allPaths;
+        }
+
+        private static void findAllPathsUtil(Graph<Node, DefaultWeightedEdge> graph, Node currentNode, Node endNode, List<Node> currentPath, List<List<Node>> allPaths) {
+            if (currentNode.equals(endNode)) {
+                allPaths.add(new ArrayList<>(currentPath));
+                return;
+            }
+
+            for (DefaultWeightedEdge edge : graph.outgoingEdgesOf(currentNode)) {
+                Node nextNode = graph.getEdgeTarget(edge);
+                if (!currentPath.contains(nextNode)) {
+                    currentPath.add(nextNode);
+                    findAllPathsUtil(graph, nextNode, endNode, currentPath, allPaths);
+                    currentPath.remove(currentPath.size() - 1);
+                }
+            }
+        }
+
+        public long countEntitiesOfShortestsPath(Entity startEntity, Entity endEntity) {
+            Graph<Node, DefaultWeightedEdge> graph = buildGraph();
+
+            List<Node> endNodes = graph.vertexSet().stream().filter(n -> n.getPosition().equals(endEntity.getPosition())).toList();
+
+            Node endNode = new Node(endEntity, endEntity.getPosition());
+            graph.addVertex(endNode);
+
+            endNodes.stream().map(n -> graph.addEdge(n, endNode)).forEach(e -> graph.setEdgeWeight(e, 0));
+
+            Node startNode = graph.vertexSet().stream().filter(n -> n.getPosition().equals(startEntity.getPosition())).filter(n -> n.getDirection() == Direction.EAST).findAny().orElseThrow();
+
+            ShortestPathAlgorithm<Node, DefaultWeightedEdge> aStarShortestPath = new AStarShortestPath<>(graph, (node, v1) -> node.getPosition().distance(v1.getPosition()));
+
+            GraphPath<Node, DefaultWeightedEdge> path = aStarShortestPath.getPath(startNode, endNode);
+
+            EppsteinShortestPathIterator<Node, DefaultWeightedEdge> eppsteinShortestPathIterator = new EppsteinShortestPathIterator<>(graph, startNode, endNode);
+
+            return Stream.generate(eppsteinShortestPathIterator::next).takeWhile(e -> e.getWeight() <= path.getWeight())
+                    .map(GraphPath::getVertexList).flatMap(List::stream).map(Node::getEntity).distinct().count();
         }
     }
 
