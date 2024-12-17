@@ -2,11 +2,17 @@ package dev.vinyard.adventofcode.soluce.year2024.day16;
 
 import lombok.Data;
 import lombok.Getter;
+import org.jgrapht.Graph;
+import org.jgrapht.alg.interfaces.ShortestPathAlgorithm;
+import org.jgrapht.alg.shortestpath.AStarShortestPath;
+import org.jgrapht.graph.DefaultWeightedEdge;
+import org.jgrapht.graph.builder.GraphTypeBuilder;
 
 import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.util.List;
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class ASD {
@@ -25,62 +31,63 @@ public class ASD {
             return nodesMap.get(direction)[position.y][position.x];
         }
 
-        public Map<Node, Long> dijkstra(Entity start, Entity target) {
-            PriorityQueue<Vertice> queue = new PriorityQueue<>();
-            Map<Node, Long> distances = new HashMap<>();
+        public static Graph<Node, DefaultWeightedEdge> createEmptyGraph() {
+            return GraphTypeBuilder.<Node, DefaultWeightedEdge>undirected()
+                    .allowingMultipleEdges(true)
+                    .allowingSelfLoops(false)
+                    .edgeClass(DefaultWeightedEdge.class)
+                    .weighted(true)
+                    .buildGraph();
+        }
 
-            Map<Direction, Node[][]> nodesMap = new HashMap<>();
+        public Graph<Node, DefaultWeightedEdge> buildGraph() {
+            Graph<Node, DefaultWeightedEdge> graph = createEmptyGraph();
 
-            Arrays.stream(Direction.values()).forEach(d -> {
-                Node[][] nodes = new Node[puzzle().getBounds().height][puzzle.getBounds().width];
-                for (int y = 0; y < puzzle.getBounds().height; y++) {
-                    for (int x = 0; x < puzzle.getBounds().width; x++) {
-                        nodes[y][x] = new Node(puzzle.getEntityAt(new Point(x, y)), new Point(x, y), d);
-                    }
-                }
-                nodesMap.put(d, nodes);
+            Node[][][] nodes = new Node[Direction.values().length][puzzle.getBounds().height][puzzle.getBounds().width];
+            Arrays.stream(Direction.values()).flatMap(d -> puzzle.getEntities().stream().map(e -> new Node(e, e.position, d)))
+                    .forEach(n -> nodes[n.direction.ordinal()][n.position.y][n.position.x] = n);
+
+            Arrays.stream(nodes).flatMap(Arrays::stream).flatMap(Arrays::stream).forEach(graph::addVertex);
+
+            Predicate<Node> isWall = n -> n.getEntity() instanceof Wall;
+            Predicate<Node> isWalkable = isWall.negate();
+
+            graph.vertexSet().stream().filter(isWalkable).forEach(node -> {
+                Optional.of(node.getPosition()).map(node.getDirection()::move)
+                        .flatMap(puzzle()::getEntityAt)
+                        .map(e -> nodes[node.getDirection().ordinal()][e.getPosition().y][e.getPosition().x])
+                        .filter(isWalkable)
+                        .map(e -> graph.addEdge(node, e))
+                        .ifPresent(e ->
+                                graph.setEdgeWeight(e, 1)
+                        );
+
+                Node clockwise = nodes[(node.getDirection().ordinal() + 1) % Direction.values().length][node.getPosition().y][node.getPosition().x];
+                graph.setEdgeWeight(graph.addEdge(node, clockwise), 1000);
+
+                Node counterClockwise = nodes[(node.getDirection().ordinal() + 3) % Direction.values().length][node.getPosition().y][node.getPosition().x];
+                graph.setEdgeWeight(graph.addEdge(node, counterClockwise), 1000);
             });
 
-            Node startNode = getNodeAt(start.position, Direction.EAST, nodesMap);
-            Vertice startVertice = new Vertice(startNode, 0);
-            distances.put(startNode, 0L);
-
-            queue.add(startVertice);
-
-            while (!queue.isEmpty()) {
-                Vertice current = queue.poll();
-
-                for (Node neighbor : getNeighbors(puzzle, current.node(), nodesMap)) {
-                    long distance = current.distance() + (current.node().getPosition().equals(neighbor.getPosition()) ? 0 : 1) + (neighbor.getDirection() == current.node().getDirection() ? 0 : 1000);
-
-                    if (!distances.containsKey(neighbor) || distance < distances.get(neighbor)) {
-                        neighbor.setParent(current.node());
-                        distances.put(neighbor, distance);
-                        queue.add(new Vertice(neighbor, distance));
-                    } else if (distance == distances.get(neighbor)) {
-                        neighbor.addParent(current.node());
-                        queue.add(new Vertice(neighbor, distance));
-                    }
-                }
-            }
-
-            return distances;
+            return graph;
         }
 
-        public List<Node> getNeighbors(Puzzle puzzle, Node current, Map<Direction, Node[][]> nodesMap) {
-            List<Node> nodes = Arrays.stream(Direction.values())
-                    .filter(d -> !Objects.equals(d, current.direction))
-                    .map(d -> getNodeAt(current.getPosition(), d, nodesMap)).collect(Collectors.toCollection(ArrayList::new));
-            Optional.of(current.getPosition()).map(current.getDirection()::move).map(puzzle::getEntityAt).filter(e -> !(e instanceof Wall)).map(e -> getNodeAt(e.getPosition(), current.getDirection(), nodesMap)).ifPresent(nodes::add);
-            return nodes;
-        }
-    }
+        public long getShortestPath(Point start, Point end) {
+            Graph<Node, DefaultWeightedEdge> graph = buildGraph();
 
-    public record Vertice (Node node, long distance) implements Comparable<Vertice> {
+            List<Node> endNodes = graph.vertexSet().stream().filter(n -> n.getPosition().equals(end)).toList();
 
-        @Override
-        public int compareTo(Vertice o) {
-            return Long.compare(distance, o.distance);
+            Entity endEntity = puzzle.getEntityAt(end).orElseThrow();
+            Node endNode = new Node(endEntity, end);
+            graph.addVertex(endNode);
+
+            endNodes.stream().map(n -> graph.addEdge(n, endNode)).forEach(e -> graph.setEdgeWeight(e, 0));
+
+            Node startNode = graph.vertexSet().stream().filter(n -> n.getPosition().equals(start)).filter(n -> n.getDirection() == Direction.EAST).findAny().orElseThrow();
+
+            ShortestPathAlgorithm<Node, DefaultWeightedEdge> aStarShortestPath = new AStarShortestPath<>(graph, (node, v1) -> node.getPosition().distance(v1.getPosition()));
+
+            return (long) aStarShortestPath.getPath(startNode, endNode).getWeight();
         }
     }
 
@@ -90,21 +97,14 @@ public class ASD {
         private final Point position;
         private final Direction direction;
 
-        private Set<Node> parents = new HashSet<>();
+        public Node(Entity entity, Point position) {
+            this(entity, position, null);
+        }
 
         public Node(Entity entity, Point position, Direction direction) {
             this.entity = entity;
             this.position = position;
             this.direction = direction;
-        }
-
-        public void setParent(Node node) {
-            parents.clear();
-            parents.add(node);
-        }
-
-        public void addParent(Node node) {
-            parents.add(node);
         }
 
         @Override
@@ -126,8 +126,8 @@ public class ASD {
             return new Rectangle(0, 0, entities[0].length, entities.length);
         }
 
-        public Entity getEntityAt(Point position) {
-            return Optional.of(position).filter(getBounds()::contains).map(p -> entities[p.y][p.x]).orElse(null);
+        public Optional<Entity> getEntityAt(Point position) {
+            return Optional.of(position).filter(getBounds()::contains).map(p -> entities[p.y][p.x]);
         }
 
         public List<Entity> getEntities() {
@@ -146,36 +146,11 @@ public class ASD {
 
     @Data
     public static class Entity {
-        private Set<Entity> parent = new HashSet<>();
         protected long distance = Long.MAX_VALUE;
         protected final Point position;
 
         public Entity(Point position) {
             this.position = position;
-        }
-
-        public void setParent(Entity entity) {
-            parent.add(entity);
-        }
-
-        public void addParent(Entity entity) {
-            parent.add(entity);
-        }
-
-        public List<Entity> getNeighbors(Puzzle puzzle) {
-            return Arrays.stream(Direction.values()).map(d -> d.move(position)).map(puzzle::getEntityAt).filter(e -> !(e instanceof Wall)).filter(Objects::nonNull).toList();
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (o == null || getClass() != o.getClass()) return false;
-            Entity entity = (Entity) o;
-            return distance == entity.distance && Objects.equals(position, entity.position);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(distance, position);
         }
     }
 

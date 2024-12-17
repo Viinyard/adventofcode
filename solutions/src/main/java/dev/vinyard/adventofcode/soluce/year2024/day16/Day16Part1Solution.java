@@ -6,9 +6,6 @@ import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 
-import java.util.*;
-import java.util.stream.Collectors;
-
 @AdventOfCodeSolution(year = 2024, day = 16, part = 1, description = "Reindeer Maze", link = "https://adventofcode.com/2024/day/16", tags = "unsolved")
 public class Day16Part1Solution implements Solution<Object> {
 
@@ -107,37 +104,6 @@ public class Day16Part1Solution implements Solution<Object> {
 
         ASD.Root root = parser.root().out;
 
-        String[][] puzzle = root.puzzle().toStringArray();
-
-        Map<ASD.Node, Long> distances = root.dijkstra(root.findStart(), root.findEnd());
-
-        System.out.println(Arrays.stream(puzzle).map(e -> String.join("", e)).collect(Collectors.joining("\n")));
-
-        Map.Entry<ASD.Node, Long> nodeLongEntry = distances.entrySet().stream().filter(n -> Objects.equals(n.getKey().getPosition(), root.findEnd().getPosition())).min(Map.Entry.comparingByValue()).orElseThrow();
-
-        ASD.Node node = nodeLongEntry.getKey();
-
-        Stack<ASD.Node> stack = new Stack<>();
-        Set<ASD.Node> parents = new HashSet<>();
-
-        stack.push(node);
-
-        while (!stack.isEmpty()) {
-            ASD.Node current = stack.pop();
-
-            parents.add(current);
-
-            current.getParents().stream().filter(e -> !parents.contains(e)).forEach(stack::push);
-        }
-
-        parents.forEach(n -> {
-                    if (puzzle[n.getPosition().y][n.getPosition().x].equals("."))
-                        puzzle[n.getPosition().y][n.getPosition().x] = "O";
-                }
-        );
-
-        System.out.println(Arrays.stream(puzzle).map(e -> String.join("", e)).collect(Collectors.joining("\n")));
-
-        return parents.stream().map(ASD.Node::getEntity).distinct().count();
+        return root.getShortestPath(root.findStart().position, root.findEnd().position);
     }
 }
