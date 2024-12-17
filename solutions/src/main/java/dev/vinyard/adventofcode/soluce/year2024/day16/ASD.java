@@ -1,5 +1,6 @@
 package dev.vinyard.adventofcode.soluce.year2024.day16;
 
+import lombok.Data;
 import lombok.Getter;
 
 import java.awt.*;
@@ -20,86 +21,90 @@ public class ASD {
             return puzzle.getEntities().stream().filter(End.class::isInstance).map(End.class::cast).findAny().orElseThrow();
         }
 
-        public Node AStar(Entity start, Entity target) {
-            Set<Node> closeList = new HashSet<>();
-            PriorityQueue<Node> openList = new PriorityQueue<>();
+        public Node getNodeAt(Point position, Direction direction, Map<Direction, Node[][]> nodesMap) {
+            return nodesMap.get(direction)[position.y][position.x];
+        }
 
+        public Map<Node, Long> dijkstra(Entity start, Entity target) {
+            PriorityQueue<Vertice> queue = new PriorityQueue<>();
+            Map<Node, Long> distances = new HashMap<>();
 
+            Map<Direction, Node[][]> nodesMap = new HashMap<>();
 
-            openList.add(new Node(null, start.getPosition(), Direction.EAST, 0, heuristic(start.getPosition(), target.position)));
-
-            while (!openList.isEmpty()) {
-                Node current = openList.poll();
-
-                if (current.getPosition().equals(target.getPosition())) {
-                    return current;
-                }
-
-                closeList.add(current);
-
-
-                for (Node node : getNeighbors(puzzle, current, target.getPosition())) {
-                    if (closeList.contains(node))
-                        continue;
-
-                    if (openList.contains(node)) {
-                        continue;
+            Arrays.stream(Direction.values()).forEach(d -> {
+                Node[][] nodes = new Node[puzzle().getBounds().height][puzzle.getBounds().width];
+                for (int y = 0; y < puzzle.getBounds().height; y++) {
+                    for (int x = 0; x < puzzle.getBounds().width; x++) {
+                        nodes[y][x] = new Node(puzzle.getEntityAt(new Point(x, y)), new Point(x, y), d);
                     }
+                }
+                nodesMap.put(d, nodes);
+            });
 
-                    openList.add(node);
+            Node startNode = getNodeAt(start.position, Direction.EAST, nodesMap);
+            Vertice startVertice = new Vertice(startNode, 0);
+            distances.put(startNode, 0L);
+
+            queue.add(startVertice);
+
+            while (!queue.isEmpty()) {
+                Vertice current = queue.poll();
+
+                for (Node neighbor : getNeighbors(puzzle, current.node(), nodesMap)) {
+                    long distance = current.distance() + (current.node().getPosition().equals(neighbor.getPosition()) ? 0 : 1) + (neighbor.getDirection() == current.node().getDirection() ? 0 : 1000);
+
+                    if (!distances.containsKey(neighbor) || distance < distances.get(neighbor)) {
+                        neighbor.setParent(current.node());
+                        distances.put(neighbor, distance);
+                        queue.add(new Vertice(neighbor, distance));
+                    } else if (distance == distances.get(neighbor)) {
+                        neighbor.addParent(current.node());
+                        queue.add(new Vertice(neighbor, distance));
+                    }
                 }
             }
 
-            return null;
+            return distances;
         }
 
-        public double heuristic(Point a, Point b) {
-            return a.distance(b);
-        }
-
-        public List<Node> getNeighbors(Puzzle puzzle, Node current, Point target) {
+        public List<Node> getNeighbors(Puzzle puzzle, Node current, Map<Direction, Node[][]> nodesMap) {
             List<Node> nodes = Arrays.stream(Direction.values())
                     .filter(d -> !Objects.equals(d, current.direction))
-                    .map(d -> new Node(current, current.getPosition(), d, current.g + 1000, heuristic(current.getPosition(), target))).collect(Collectors.toCollection(ArrayList::new));
-            Optional.of(current.getPosition()).map(current.getDirection()::move).map(puzzle::getEntityAt).filter(e -> !(e instanceof Wall)).map(e -> new Node(current, e.getPosition(), current.getDirection(), current.g + 1, heuristic(e.getPosition(), target))).ifPresent(nodes::add);
+                    .map(d -> getNodeAt(current.getPosition(), d, nodesMap)).collect(Collectors.toCollection(ArrayList::new));
+            Optional.of(current.getPosition()).map(current.getDirection()::move).map(puzzle::getEntityAt).filter(e -> !(e instanceof Wall)).map(e -> getNodeAt(e.getPosition(), current.getDirection(), nodesMap)).ifPresent(nodes::add);
             return nodes;
         }
     }
 
-    @Getter
-    public static class Node implements Comparable<Node> {
+    public record Vertice (Node node, long distance) implements Comparable<Vertice> {
 
-        private final Node parent;
+        @Override
+        public int compareTo(Vertice o) {
+            return Long.compare(distance, o.distance);
+        }
+    }
+
+    @Getter
+    public static class Node {
+        private final Entity entity;
         private final Point position;
         private final Direction direction;
-        private final long g;
-        private final double h;
 
-        public Node(Node parent, Point position, Direction direction, long g, double h) {
-            this.parent = parent;
+        private Set<Node> parents = new HashSet<>();
+
+        public Node(Entity entity, Point position, Direction direction) {
+            this.entity = entity;
             this.position = position;
             this.direction = direction;
-            this.g = g;
-            this.h = h;
         }
 
-        public double getF() {
-            return g + h;
+        public void setParent(Node node) {
+            parents.clear();
+            parents.add(node);
         }
 
-        @Override
-        public String toString() {
-            return "Node{" +
-                    ", position=" + position +
-                    ", direction=" + direction +
-                    ", g=" + g +
-                    ", h=" + h +
-                    '}';
-        }
-
-        @Override
-        public int compareTo(Node o) {
-            return Double.compare(getF(), o.getF());
+        public void addParent(Node node) {
+            parents.add(node);
         }
 
         @Override
@@ -139,16 +144,38 @@ public class ASD {
         }
     }
 
-    @Getter
+    @Data
     public static class Entity {
+        private Set<Entity> parent = new HashSet<>();
+        protected long distance = Long.MAX_VALUE;
         protected final Point position;
 
         public Entity(Point position) {
             this.position = position;
         }
 
+        public void setParent(Entity entity) {
+            parent.add(entity);
+        }
+
+        public void addParent(Entity entity) {
+            parent.add(entity);
+        }
+
         public List<Entity> getNeighbors(Puzzle puzzle) {
             return Arrays.stream(Direction.values()).map(d -> d.move(position)).map(puzzle::getEntityAt).filter(e -> !(e instanceof Wall)).filter(Objects::nonNull).toList();
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == null || getClass() != o.getClass()) return false;
+            Entity entity = (Entity) o;
+            return distance == entity.distance && Objects.equals(position, entity.position);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(distance, position);
         }
     }
 
