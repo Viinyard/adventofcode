@@ -104,6 +104,6 @@ public class Day16Part1Solution implements Solution<Object> {
 
         ASD.Root root = parser.root().out;
 
-        return root.getShortestPath(root.findStart().position, root.findEnd().position);
+        return root.getShortestPath();
     }
 }

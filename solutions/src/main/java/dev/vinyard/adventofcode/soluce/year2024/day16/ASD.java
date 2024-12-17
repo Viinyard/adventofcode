@@ -1,7 +1,6 @@
 package dev.vinyard.adventofcode.soluce.year2024.day16;
 
 import lombok.Data;
-import lombok.Getter;
 import org.jgrapht.Graph;
 import org.jgrapht.GraphPath;
 import org.jgrapht.alg.interfaces.ShortestPathAlgorithm;
@@ -12,29 +11,50 @@ import org.jgrapht.graph.builder.GraphTypeBuilder;
 
 import java.awt.*;
 import java.awt.geom.AffineTransform;
+import java.util.Arrays;
 import java.util.List;
-import java.util.*;
+import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class ASD {
 
-    public record Root(Puzzle puzzle) {
+    public static class Root {
 
-        public Start findStart() {
+        private final Puzzle puzzle;
+
+        private final Node startNode;
+        private final Node endNode;
+
+        private final Graph<Node, DefaultWeightedEdge> graph;
+
+        public Root(Puzzle puzzle) {
+            this.puzzle = puzzle;
+            this.graph = buildGraph();
+
+            Entity endEntity = findEnd();
+            Entity startEntity = findStart();
+
+            List<Node> endNodes = graph.vertexSet().stream().filter(n -> n.position().equals(endEntity.getPosition())).toList();
+
+            this.endNode = new Node(endEntity);
+
+            graph.addVertex(endNode);
+            endNodes.stream().map(n -> graph.addEdge(n, endNode)).forEach(e -> graph.setEdgeWeight(e, 0));
+
+            this.startNode = graph.vertexSet().stream().filter(n -> n.position().equals(startEntity.getPosition())).filter(n -> n.direction() == Direction.EAST).findAny().orElseThrow();
+        }
+
+        private Start findStart() {
             return puzzle.getEntities().stream().filter(Start.class::isInstance).map(Start.class::cast).findAny().orElseThrow();
         }
 
-        public End findEnd() {
+        private End findEnd() {
             return puzzle.getEntities().stream().filter(End.class::isInstance).map(End.class::cast).findAny().orElseThrow();
         }
 
-        public Node getNodeAt(Point position, Direction direction, Map<Direction, Node[][]> nodesMap) {
-            return nodesMap.get(direction)[position.y][position.x];
-        }
-
-        public static Graph<Node, DefaultWeightedEdge> createEmptyGraph() {
+        private static Graph<Node, DefaultWeightedEdge> createEmptyGraph() {
             return GraphTypeBuilder.<Node, DefaultWeightedEdge>directed()
                     .allowingMultipleEdges(false)
                     .allowingSelfLoops(false)
@@ -43,129 +63,62 @@ public class ASD {
                     .buildGraph();
         }
 
-        public Graph<Node, DefaultWeightedEdge> buildGraph() {
+        private Graph<Node, DefaultWeightedEdge> buildGraph() {
             Graph<Node, DefaultWeightedEdge> graph = createEmptyGraph();
 
             Node[][][] nodes = new Node[Direction.values().length][puzzle.getBounds().height][puzzle.getBounds().width];
-            Arrays.stream(Direction.values()).flatMap(d -> puzzle.getEntities().stream().map(e -> new Node(e, e.position, d)))
-                    .forEach(n -> nodes[n.direction.ordinal()][n.position.y][n.position.x] = n);
+            Arrays.stream(Direction.values()).flatMap(d -> puzzle.getEntities().stream().map(e -> new Node(e, d)))
+                    .forEach(n -> nodes[n.direction.ordinal()][n.position().y][n.position().x] = n);
 
             Arrays.stream(nodes).flatMap(Arrays::stream).flatMap(Arrays::stream).forEach(graph::addVertex);
 
-            Predicate<Node> isWall = n -> n.getEntity() instanceof Wall;
+            Predicate<Node> isWall = n -> n.entity() instanceof Wall;
             Predicate<Node> isWalkable = isWall.negate();
 
             graph.vertexSet().stream().filter(isWalkable).forEach(node -> {
-                Optional.of(node.getPosition()).map(node.getDirection()::move)
-                        .flatMap(puzzle()::getEntityAt)
-                        .map(e -> nodes[node.getDirection().ordinal()][e.getPosition().y][e.getPosition().x])
+                Optional.of(node.position()).map(node.direction()::move)
+                        .flatMap(puzzle::getEntityAt)
+                        .map(e -> nodes[node.direction().ordinal()][e.getPosition().y][e.getPosition().x])
                         .filter(isWalkable)
                         .map(e -> graph.addEdge(node, e))
                         .ifPresent(e ->
                                 graph.setEdgeWeight(e, 1)
                         );
 
-                Node clockwise = nodes[(node.getDirection().ordinal() + 1) % Direction.values().length][node.getPosition().y][node.getPosition().x];
+                Node clockwise = nodes[(node.direction().ordinal() + 1) % Direction.values().length][node.position().y][node.position().x];
                 graph.setEdgeWeight(graph.addEdge(node, clockwise), 1000);
 
-                Node counterClockwise = nodes[(node.getDirection().ordinal() + 3) % Direction.values().length][node.getPosition().y][node.getPosition().x];
+                Node counterClockwise = nodes[(node.direction().ordinal() + 3) % Direction.values().length][node.position().y][node.position().x];
                 graph.setEdgeWeight(graph.addEdge(node, counterClockwise), 1000);
             });
 
             return graph;
         }
 
-        public long getShortestPath(Point start, Point end) {
-            Graph<Node, DefaultWeightedEdge> graph = buildGraph();
-
-            List<Node> endNodes = graph.vertexSet().stream().filter(n -> n.getPosition().equals(end)).toList();
-
-            Entity endEntity = puzzle.getEntityAt(end).orElseThrow();
-            Node endNode = new Node(endEntity, end);
-            graph.addVertex(endNode);
-
-            endNodes.stream().map(n -> graph.addEdge(n, endNode)).forEach(e -> graph.setEdgeWeight(e, 0));
-
-            Node startNode = graph.vertexSet().stream().filter(n -> n.getPosition().equals(start)).filter(n -> n.getDirection() == Direction.EAST).findAny().orElseThrow();
-
-            ShortestPathAlgorithm<Node, DefaultWeightedEdge> aStarShortestPath = new AStarShortestPath<>(graph, (node, v1) -> node.getPosition().distance(v1.getPosition()));
+        public long getShortestPath() {
+            ShortestPathAlgorithm<Node, DefaultWeightedEdge> aStarShortestPath = new AStarShortestPath<>(this.graph, (node, v1) -> node.position().distance(v1.position()));
 
             return (long) aStarShortestPath.getPath(startNode, endNode).getWeight();
         }
 
-        public static List<List<Node>> findAllPaths(Graph<Node, DefaultWeightedEdge> graph, Node startNode, Node endNode) {
-            List<List<Node>> allPaths = new ArrayList<>();
-            List<Node> currentPath = new ArrayList<>();
-            currentPath.add(startNode);
-            findAllPathsUtil(graph, startNode, endNode, currentPath, allPaths);
-            return allPaths;
-        }
-
-        private static void findAllPathsUtil(Graph<Node, DefaultWeightedEdge> graph, Node currentNode, Node endNode, List<Node> currentPath, List<List<Node>> allPaths) {
-            if (currentNode.equals(endNode)) {
-                allPaths.add(new ArrayList<>(currentPath));
-                return;
-            }
-
-            for (DefaultWeightedEdge edge : graph.outgoingEdgesOf(currentNode)) {
-                Node nextNode = graph.getEdgeTarget(edge);
-                if (!currentPath.contains(nextNode)) {
-                    currentPath.add(nextNode);
-                    findAllPathsUtil(graph, nextNode, endNode, currentPath, allPaths);
-                    currentPath.remove(currentPath.size() - 1);
-                }
-            }
-        }
-
-        public long countEntitiesOfShortestsPath(Entity startEntity, Entity endEntity) {
-            Graph<Node, DefaultWeightedEdge> graph = buildGraph();
-
-            List<Node> endNodes = graph.vertexSet().stream().filter(n -> n.getPosition().equals(endEntity.getPosition())).toList();
-
-            Node endNode = new Node(endEntity, endEntity.getPosition());
-            graph.addVertex(endNode);
-
-            endNodes.stream().map(n -> graph.addEdge(n, endNode)).forEach(e -> graph.setEdgeWeight(e, 0));
-
-            Node startNode = graph.vertexSet().stream().filter(n -> n.getPosition().equals(startEntity.getPosition())).filter(n -> n.getDirection() == Direction.EAST).findAny().orElseThrow();
-
-            ShortestPathAlgorithm<Node, DefaultWeightedEdge> aStarShortestPath = new AStarShortestPath<>(graph, (node, v1) -> node.getPosition().distance(v1.getPosition()));
-
-            GraphPath<Node, DefaultWeightedEdge> path = aStarShortestPath.getPath(startNode, endNode);
-
+        public long countEntitiesOfShortestsPath() {
             EppsteinShortestPathIterator<Node, DefaultWeightedEdge> eppsteinShortestPathIterator = new EppsteinShortestPathIterator<>(graph, startNode, endNode);
 
-            return Stream.generate(eppsteinShortestPathIterator::next).takeWhile(e -> e.getWeight() <= path.getWeight())
-                    .map(GraphPath::getVertexList).flatMap(List::stream).map(Node::getEntity).distinct().count();
+            final double shortestPathWeight = getShortestPath();
+
+            return Stream.generate(eppsteinShortestPathIterator::next).takeWhile(e -> e.getWeight() <= shortestPathWeight)
+                    .map(GraphPath::getVertexList).flatMap(List::stream).map(Node::entity).distinct().count();
         }
     }
 
-    @Getter
-    public static class Node {
-        private final Entity entity;
-        private final Point position;
-        private final Direction direction;
+    public record Node (Entity entity, Direction direction) {
 
-        public Node(Entity entity, Point position) {
-            this(entity, position, null);
+        public Node(Entity entity) {
+            this(entity, null);
         }
 
-        public Node(Entity entity, Point position, Direction direction) {
-            this.entity = entity;
-            this.position = position;
-            this.direction = direction;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (o == null || getClass() != o.getClass()) return false;
-            Node node = (Node) o;
-            return Objects.equals(position, node.position) && direction == node.direction;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(position, direction);
+        public Point position() {
+            return entity.getPosition();
         }
     }
 
@@ -183,10 +136,6 @@ public class ASD {
             return Arrays.stream(entities).flatMap(Arrays::stream).toList();
         }
 
-        public String[][] toStringArray() {
-            return Arrays.stream(entities).map(e -> Arrays.stream(e).map(Entity::toString).toArray(String[]::new)).toArray(String[][]::new);
-        }
-
         @Override
         public String toString() {
             return Arrays.stream(entities).map(e -> Arrays.stream(e).map(Entity::toString).collect(Collectors.joining())).collect(Collectors.joining("\n"));
@@ -194,8 +143,7 @@ public class ASD {
     }
 
     @Data
-    public static class Entity {
-        protected long distance = Long.MAX_VALUE;
+    public static sealed class Entity permits Wall, Empty, Start, End {
         protected final Point position;
 
         public Entity(Point position) {
@@ -203,7 +151,7 @@ public class ASD {
         }
     }
 
-    public static class Wall extends Entity {
+    public static final class Wall extends Entity {
         public Wall(Point position) {
             super(position);
         }
@@ -214,7 +162,7 @@ public class ASD {
         }
     }
 
-    public static class Empty extends Entity {
+    public static final class Empty extends Entity {
         public Empty(Point position) {
             super(position);
         }
@@ -225,7 +173,7 @@ public class ASD {
         }
     }
 
-    public static class Start extends Entity {
+    public static final class Start extends Entity {
         public Start(Point position) {
             super(position);
         }
@@ -236,7 +184,7 @@ public class ASD {
         }
     }
 
-    public static class End extends Entity {
+    public static final class End extends Entity {
         public End(Point position) {
             super(position);
         }
