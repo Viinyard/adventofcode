@@ -2,13 +2,14 @@ package dev.vinyard.adventofcode.soluce.year2024.day16;
 
 import dev.vinyard.aoc.plugins.solution.api.Solution;
 import dev.vinyard.aoc.plugins.solution.api.annotation.AdventOfCodeSolution;
-import dev.vinyard.adventofcode.utils.FileReader;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
+import java.util.Arrays;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @AdventOfCodeSolution(year = 2024, day = 16, part = 1, description = "Reindeer Maze", link = "https://adventofcode.com/2024/day/16", tags = "unsolved")
 public class Day16Part1Solution implements Solution<Object> {
@@ -105,8 +106,21 @@ public class Day16Part1Solution implements Solution<Object> {
         SolutionLexer lexer = new SolutionLexer(charStream);
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         SolutionParser parser = new SolutionParser(tokens);
-        // TODO get the ASD from the parser
 
-        return null;
+        ASD.Root root = parser.root().out;
+
+        String[][] puzzle = root.puzzle().toStringArray();
+
+        ASD.Node node = root.AStar(root.findStart(), root.findEnd());
+
+        Stream.iterate(node, n -> Objects.nonNull(n.getParent()), ASD.Node::getParent)
+                .forEach(n -> {
+                        if (puzzle[n.getPosition().y][n.getPosition().x].equals("."))
+                            puzzle[n.getPosition().y][n.getPosition().x] = n.getDirection().symbol;
+                });
+
+        System.out.println(Arrays.stream(puzzle).map(e -> String.join("", e)).collect(Collectors.joining("\n")));
+
+        return node.getG();
     }
 }
