@@ -6,129 +6,93 @@ options {
 }
 
 @header {
-import java.util.Stack;
 import java.util.function.Supplier;
 import java.util.function.Consumer;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 }
 
-root returns [List<Integer> out]
+root returns [ASD.Program out]
     : program EOF {
         $out = $program.out;
     }
     ;
 
-program returns [List<Integer> out]
+program returns [ASD.Program out]
     @init {
-        AtomicInteger registerA = new AtomicInteger();
-        AtomicInteger registerB = new AtomicInteger();
-        AtomicInteger registerC = new AtomicInteger();
-        AtomicInteger ptr = new AtomicInteger(0);
-        $out = new ArrayList<>();
+        AtomicLong registerA = new AtomicLong();
+        AtomicLong registerB = new AtomicLong();
+        AtomicLong registerC = new AtomicLong();
     }
     :
     REGISTER_A INT {
-        registerA.set(Integer.parseInt($INT.text));
+        registerA.set(Long.parseLong($INT.text));
     }
     REGISTER_B INT {
-        registerB.set(Integer.parseInt($INT.text));
+        registerB.set(Long.parseLong($INT.text));
     }
     REGISTER_C INT {
-        registerC.set(Integer.parseInt($INT.text));
+        registerC.set(Long.parseLong($INT.text));
     }
     PROGRAM
-    (instructions+=instruction[registerA, registerB, registerC, ptr, $out])+ {
-        List<Runnable> executors = $instructions.stream().map(i -> i.out).toList();
+    (instructions+=instruction[registerA, registerB, registerC])+ {
+        List<ASD.Instruction> instructions = $instructions.stream().map(i -> i.out).toList();
 
-        do {
-            executors.get(ptr.get()).run();
-        } while (ptr.get() < executors.size());
+        $out = new ASD.Program(registerA, registerB, registerC, instructions);
     }
     ;
 
-instruction[AtomicInteger registerA, AtomicInteger registerB, AtomicInteger registerC, AtomicInteger ptr, List<Integer> output] returns [Runnable out]
-    : opcode[registerA, registerB, registerC, ptr, output] operand[registerA, registerB, registerC] {
-        $out = () -> $opcode.out.accept($operand.out);
+instruction[AtomicLong registerA, AtomicLong registerB, AtomicLong registerC] returns [ASD.Instruction out]
+    : opcode[registerA, registerB, registerC] operand[registerA, registerB, registerC] {
+        $out = $opcode.out.setValue($operand.out);
     }
     ;
 
-operand[AtomicInteger registerA, AtomicInteger registerB, AtomicInteger registerC] returns [Supplier<Integer> out]
+operand[AtomicLong registerA, AtomicLong registerB, AtomicLong registerC] returns [AtomicLong out]
     :
     LITERAL {
-        $out = () -> Integer.parseInt($LITERAL.text);
+        $out = new AtomicLong(Long.parseLong($LITERAL.text));
     }
     | OPERAND_A {
-        $out = () -> registerA.get();
+        $out = registerA;
     }
     | OPERAND_B {
-        $out = () -> registerB.get();
+        $out = registerB;
     }
     | OPERAND_C {
-        $out = () -> registerC.get();
+        $out = registerC;
     }
     | OPERAND_RESERVED {
         // reserved
     }
     | INT_LITERAL {
-        $out = () -> Integer.parseInt($INT_LITERAL.text);
+        $out = new AtomicLong(Long.parseLong($INT_LITERAL.text));
     }
     ;
 
-opcode[AtomicInteger registerA, AtomicInteger registerB, AtomicInteger registerC, AtomicInteger ptr, List<Integer> output] returns [Consumer<Supplier<Integer>> out]
-    @init {
-        Consumer<Supplier<Integer>> incPtr = (a) -> ptr.incrementAndGet();
-    }
+opcode[AtomicLong registerA, AtomicLong registerB, AtomicLong registerC] returns [ASD.Instruction out]
     :
     OPCODE_ADV {
-        Consumer<Supplier<Integer>> adv = (a) -> {
-            registerA.set((int) (registerA.get() >> a.get()));
-        };
-        $out = adv.andThen(incPtr);
+        $out = new ASD.AdvInstruction();
     }
     | OPCODE_BXL {
-        Consumer<Supplier<Integer>> bxl = (a) -> {
-            registerB.set((int) (registerB.get() ^ a.get()));
-        };
-        $out = bxl.andThen(incPtr);
+        $out = new ASD.BxlInstruction();
     }
     | OPCODE_BST {
-        Consumer<Supplier<Integer>> bst = (a) -> {
-            registerB.set(a.get() % 8);
-        };
-        $out = bst.andThen(incPtr);
+        $out = new ASD.BstInstruction();
     }
     | OPCODE_JNZ {
-        $out = (a) -> {
-            if (registerA.get() != 0) {
-                ptr.set(a.get());
-            } else {
-                incPtr.accept(a);
-            }
-        };
+        $out = new ASD.JnzInstruction();
     }
     | OPCODE_BXC {
-        Consumer<Supplier<Integer>> bxc = (a) -> {
-            registerB.set(registerB.get() ^ registerC.get());
-        };
-        $out = bxc.andThen(incPtr);
+        $out = new ASD.BxcInstruction();
     }
     | OPCODE_OUT {
-        Consumer<Supplier<Integer>> out = (a) -> {
-            output.add(a.get() % 8);
-        };
-        $out = out.andThen(incPtr);
+        $out = new ASD.OutInstruction();
     }
     | OPCODE_BDV {
-        Consumer<Supplier<Integer>> bdv = (a) -> {
-            registerB.set((int) (registerA.get() >> a.get()));
-        };
-        $out = bdv.andThen(incPtr);
+        $out = new ASD.BdvInstruction();
     }
     | OPCODE_CDV {
-        Consumer<Supplier<Integer>> cdv = (a) -> {
-            registerC.set((int) (registerA.get() >> a.get()));
-        };
-        $out = cdv.andThen(incPtr);
+        $out = new ASD.CdvInstruction();
     }
     ;
-

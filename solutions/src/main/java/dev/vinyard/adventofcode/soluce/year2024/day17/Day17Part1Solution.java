@@ -64,8 +64,10 @@ public class Day17Part1Solution implements Solution<Object> {
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         SolutionParser parser = new SolutionParser(tokens);
 
-        Runnable r = parser::root;
+        ASD.Program program = parser.root().out;
 
-        return parser.root().out.stream().map(String::valueOf).collect(Collectors.joining(","));
+        program.evaluate();
+
+        return program.getOutput().stream().map(String::valueOf).collect(Collectors.joining(","));
     }
 }
