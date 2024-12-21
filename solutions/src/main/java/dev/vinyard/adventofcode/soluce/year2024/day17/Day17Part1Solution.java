@@ -2,13 +2,11 @@ package dev.vinyard.adventofcode.soluce.year2024.day17;
 
 import dev.vinyard.aoc.plugins.solution.api.Solution;
 import dev.vinyard.aoc.plugins.solution.api.annotation.AdventOfCodeSolution;
-import dev.vinyard.adventofcode.utils.FileReader;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
+import java.util.stream.Collectors;
 
 @AdventOfCodeSolution(year = 2024, day = 17, part = 1, description = "Chronospatial Computer", link = "https://adventofcode.com/2024/day/17", tags = "unsolved")
 public class Day17Part1Solution implements Solution<Object> {
@@ -65,8 +63,9 @@ public class Day17Part1Solution implements Solution<Object> {
         SolutionLexer lexer = new SolutionLexer(charStream);
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         SolutionParser parser = new SolutionParser(tokens);
-        // TODO get the ASD from the parser
 
-        return null;
+        Runnable r = parser::root;
+
+        return parser.root().out.stream().map(String::valueOf).collect(Collectors.joining(","));
     }
 }
