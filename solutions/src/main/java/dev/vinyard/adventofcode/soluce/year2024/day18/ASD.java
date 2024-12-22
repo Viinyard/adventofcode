@@ -1,6 +1,7 @@
 package dev.vinyard.adventofcode.soluce.year2024.day18;
 
 import org.jgrapht.Graph;
+import org.jgrapht.GraphPath;
 import org.jgrapht.alg.interfaces.ShortestPathAlgorithm;
 import org.jgrapht.alg.shortestpath.AStarShortestPath;
 import org.jgrapht.graph.DefaultEdge;
@@ -8,36 +9,29 @@ import org.jgrapht.graph.builder.GraphTypeBuilder;
 
 import java.awt.*;
 import java.awt.geom.AffineTransform;
+import java.awt.geom.Point2D;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 public class ASD {
 
     public static class Root {
 
         private final List<Point> coordinates;
-        private final boolean bits[][];
         private final Rectangle bounds;
         private final int nbBits;
 
-        public Root(List<Point> coordinates, Dimension dimension, int nbBits) {
+        public Root(List<Point> coordinates, int nbBits) {
             this.coordinates = coordinates;
-            this.bounds = new Rectangle(dimension);
+            this.bounds = new Rectangle(
+                    coordinates.stream().mapToInt(p -> p.x).max().orElseThrow() + 1,
+                    coordinates.stream().mapToInt(p -> p.y).max().orElseThrow() + 1);
             this.nbBits = nbBits;
-            this.bits = new boolean[dimension.width][dimension.height];
-            this.coordinates.stream().limit(nbBits).forEach(p -> bits[p.x][p.y] = true);
-        }
-
-        public Root(List<Point> coordinates) {
-            this(coordinates, new Dimension(71, 71), 1024);
-        }
-
-        public boolean isCorrupted(Point point) {
-            return bits[point.x][point.y];
         }
 
         public List<Point> getNeighbours(Point point) {
-            return Arrays.stream(Direction.values()).map(d -> d.move(point)).filter(bounds::contains).filter(p -> !isCorrupted(p)).toList();
+            return Arrays.stream(Direction.values()).map(d -> d.move(point)).filter(bounds::contains).toList();
         }
 
         private static Graph<Point, DefaultEdge> createEmptyGraph() {
@@ -69,12 +63,39 @@ public class ASD {
         public long calculateShortestPath() {
             Graph<Point, DefaultEdge> graph = buildGraph();
 
-            Point start = graph.vertexSet().stream().filter(p -> p.equals(new Point(bounds.x, bounds.y))).findAny().orElseThrow();
-            Point end = graph.vertexSet().stream().filter(p -> p.equals(new Point(bounds.width - 1, bounds.height - 1))).findAny().orElseThrow();
+            Point start = new Point(bounds.x, bounds.y);
+            Point end = new Point(bounds.width - 1, bounds.height - 1);
 
-            ShortestPathAlgorithm<Point, DefaultEdge> aStar = new AStarShortestPath<>(graph, (s, e) -> s.distance(e));
+            this.coordinates.stream().limit(nbBits).forEach(graph::removeVertex);
+
+            ShortestPathAlgorithm<Point, DefaultEdge> aStar = new AStarShortestPath<>(graph, Point2D::distance);
 
             return aStar.getPath(start, end).getLength();
+        }
+
+        public Optional<Point> getBlockingPoint() {
+            Graph<Point, DefaultEdge> graph = buildGraph();
+
+            Point start = new Point(bounds.x, bounds.y);
+            Point end = new Point(bounds.width - 1, bounds.height - 1);
+
+            ShortestPathAlgorithm<Point, DefaultEdge> aStar = new AStarShortestPath<>(graph, Point2D::distance);
+
+            GraphPath<Point, DefaultEdge> path = aStar.getPath(start, end);
+
+            for (Point point : this.coordinates) {
+                graph.removeVertex(point);
+
+                if (path.getVertexList().contains(point)) {
+                    path = aStar.getPath(start, end);
+
+                    if (path == null) {
+                        return Optional.of(point);
+                    }
+                }
+            }
+
+            return Optional.empty();
         }
 
     }

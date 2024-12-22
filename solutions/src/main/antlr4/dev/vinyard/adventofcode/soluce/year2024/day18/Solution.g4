@@ -6,30 +6,21 @@ options {
 
 @header {
 import java.awt.Point;
-import java.awt.Dimension;
 }
 
 root returns [ASD.Root out]
     @init {
         List<Point> coordinates = new ArrayList<>();
+        int number_of_bits = 1024;
     }
-    : dimensions number_of_bits (coordinate {
-        coordinates.add($coordinate.out);
-    })+ EOF {
-        $out = new ASD.Root(coordinates, $dimensions.out, $number_of_bits.out);
-    }
-    |
+    :
+    (number_of_bits {
+        number_of_bits = $number_of_bits.out;
+    })?
     (coordinate {
         coordinates.add($coordinate.out);
     })+ EOF {
-        $out = new ASD.Root(coordinates);
-    }
-    ;
-
-dimensions returns [Dimension out]
-    :
-    'dimensions' x=INT ',' y=INT {
-        $out = new Dimension(Integer.parseInt($x.text), Integer.parseInt($y.text));
+        $out = new ASD.Root(coordinates, number_of_bits);
     }
     ;
 
