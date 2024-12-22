@@ -1,7 +1,11 @@
 package dev.vinyard.adventofcode.soluce.year2024.day17;
 
+import lombok.Getter;
+
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.PriorityQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -13,31 +17,72 @@ public class ASD {
 
     public static class Program {
 
-        private AtomicLong registerA;
-        private AtomicLong registerB;
-        private AtomicLong registerC;
+        private final AtomicLong registerA;
+        private final AtomicLong registerB;
+        private final AtomicLong registerC;
 
-        private AtomicInteger ptr = new AtomicInteger(0);
+        private final AtomicInteger ptr = new AtomicInteger(0);
 
-        private List<Long> output = new ArrayList<>();
+        @Getter
+        private final List<Long> output = new ArrayList<>();
 
-        private List<Instruction> instructions;
+        private final List<Instruction> instructions;
 
-        public Program (AtomicLong registerA, AtomicLong registerB, AtomicLong registerC, List<Instruction> instructions) {
+        private final List<Long> source;
+
+        public Program (AtomicLong registerA, AtomicLong registerB, AtomicLong registerC, List<Instruction> instructions, List<Long> source) {
             this.registerA = registerA;
             this.registerB = registerB;
             this.registerC = registerC;
             this.instructions = instructions;
+            this.source = source;
         }
 
         public void evaluate() {
             while (ptr.get() < instructions.size()) {
-                instructions.get((int) ptr.get()).execute(this);
+                instructions.get(ptr.get()).execute(this);
             }
         }
 
-        public List<Long> getOutput() {
-            return output;
+        public void evaluate(long a, long b, long c) {
+            output.clear();
+            ptr.set(0);
+            registerA.set(a);
+            registerB.set(b);
+            registerC.set(c);
+
+            while (ptr.get() < instructions.size()) {
+                instructions.get(ptr.get()).execute(this);
+            }
+        }
+
+        public long findA() {
+            final long b = getB();
+            final long c = getC();
+
+            PriorityQueue<Long> stack = new PriorityQueue<>();
+            stack.add(0L);
+
+            while (!stack.isEmpty()) {
+                long a = stack.peek();
+                for (long nextA = a; nextA <= a + 0b111; nextA += 0b001) {
+                    evaluate(nextA, b, c);
+
+                    List<Long> expected = source.subList(source.size() - output.size(), source.size());
+                    if (Arrays.equals(output.stream().mapToLong(Long::longValue).toArray(), expected.stream().mapToLong(Long::longValue).toArray())) {
+                        if (source.size() == output.size()) {
+                            return nextA;
+                        } else {
+                            if (!stack.contains(nextA << 3)) {
+                                stack.add(nextA << 3);
+                            }
+                        }
+                    }
+                }
+                stack.poll();
+            }
+
+            throw new IllegalStateException("No solution found");
         }
 
         public long getA() {
@@ -50,10 +95,6 @@ public class ASD {
 
         public long getC() {
             return registerC.get();
-        }
-
-        public long getPtr() {
-            return ptr.get();
         }
 
         public void setA(long value) {
