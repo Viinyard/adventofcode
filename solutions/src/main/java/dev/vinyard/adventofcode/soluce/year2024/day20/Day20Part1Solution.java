@@ -135,6 +135,6 @@ public class Day20Part1Solution implements Solution<Object> {
 
         ASD.Root root = parser.root().out;
 
-        return root.countCheat();
+        return root.countCheat(2);
     }
 }

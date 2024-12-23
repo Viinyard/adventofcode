@@ -1,5 +1,7 @@
 package dev.vinyard.adventofcode.soluce.year2024.day20;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.jgrapht.Graph;
 import org.jgrapht.GraphPath;
 import org.jgrapht.alg.interfaces.ShortestPathAlgorithm;
@@ -80,22 +82,19 @@ public class ASD {
             return shortestPathAlgorithm.getPath(start, end);
         }
 
-        public long countCheat() {
+        public long countCheat(int maxDistance) {
             GraphPath<Node, DefaultEdge> shortestPath = getShortestPath();
 
             List<Node> shortestPathNodes = shortestPath.getVertexList();
 
-            long count = 0;
+            shortestPathNodes.forEach(n -> n.setIndex(shortestPathNodes.indexOf(n)));
 
-            for (Node node : shortestPathNodes) {
-                count += this.getNeighbours(node, 2).stream()
-                        .filter(Empty.class::isInstance)
-                        .mapToInt(n -> shortestPathNodes.indexOf(n) - shortestPathNodes.indexOf(node) - 2)
-                        .filter(cheat)
-                        .count();
-            }
-
-            return count;
+            return shortestPathNodes.parallelStream().mapToLong(node -> shortestPathNodes.parallelStream()
+                    .filter(n -> (Math.abs(node.position.x - n.position.x) + Math.abs(node.position.y - n.position.y)) <= maxDistance)
+                    .mapToInt(n -> n.getIndex() - node.getIndex() - (Math.abs(node.position.x - n.position.x) + Math.abs(node.position.y - n.position.y)))
+                    .filter(cheat)
+                    .count())
+                    .sum();
         }
 
     }
@@ -103,6 +102,10 @@ public class ASD {
     public static sealed class Node permits Empty, Wall {
 
         protected final Point position;
+
+        @Getter
+        @Setter
+        protected int index = -1;
 
         public Node(Point position) {
             this.position = position;

@@ -29,7 +29,7 @@ root returns [ASD.Root out]
 cheat returns [IntPredicate out]
     :
     'picoseconds' SEMICOLON INT NEWLINE {
-        $out = (pico) -> Objects.equals(pico, Integer.parseInt($INT.text));
+        $out = (pico) -> pico == Integer.parseInt($INT.text);
     }
     ;
 
