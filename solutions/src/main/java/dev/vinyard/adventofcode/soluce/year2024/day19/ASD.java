@@ -3,7 +3,6 @@ package dev.vinyard.adventofcode.soluce.year2024.day19;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 public class ASD {
 
@@ -11,7 +10,7 @@ public class ASD {
 
         private final List<String> towels;
         private final List<String> patterns;
-        private final Map<String, Boolean> cache = new HashMap<>();
+        private final Map<String, Long> cache = new HashMap<>();
 
         public Root(List<String> towels, List<String> patterns) {
             this.towels = towels;
@@ -19,30 +18,26 @@ public class ASD {
         }
 
         public long countValidPatterns() {
-            return patterns.stream().filter(p -> isValidPattern(p, this::any)).count();
+            return patterns.stream().mapToLong(this::cacheIsValidPattern).filter(l -> l > 0L).count();
         }
 
-        boolean cacheIsValidPattern(String design, Function<List<Boolean>, Boolean> op) {
+        public long countAllValidPatterns() {
+            return patterns.stream().mapToLong(this::isValidPattern).sum();
+        }
+
+        long cacheIsValidPattern(String design) {
             if (cache.containsKey(design)) {
                 return cache.get(design);
             }
-            cache.putIfAbsent(design, isValidPattern(design, op));
+            cache.put(design, isValidPattern(design));
             return cache.get(design);
         }
 
-         boolean isValidPattern(String design, Function<List<Boolean>, Boolean> op) {
+         long isValidPattern(String design) {
              if (design.isEmpty())
-                 return true;
+                 return 1L;
 
-            return op.apply(towels.stream().filter(design::startsWith).map(towel -> design.substring(towel.length())).map(e -> cacheIsValidPattern(e, op)).toList());
-        }
-
-        private boolean any(List<Boolean> results) {
-            return results.stream().anyMatch(Boolean::booleanValue);
-        }
-
-        private boolean sum(List<Boolean> results) {
-            return results.stream().mapToInt(b -> b ? 1 : 0).sum() > 0;
+            return towels.stream().filter(design::startsWith).map(towel -> design.substring(towel.length())).mapToLong(this::cacheIsValidPattern).sum();
         }
     }
 }
