@@ -33,7 +33,7 @@ public class ASD {
             robotDegrees.setNext(robotRadiation);
             robotRadiation.setNext(digicodeDepressurized);
 
-            return robotDegrees;
+            return digicodeDepressurized;
         }
 
         public String getCommandForCode(Code code) {
@@ -74,9 +74,9 @@ public class ASD {
         }
     }
 
+    @Setter
     public static abstract class RequestHandler {
 
-        @Setter
         protected RequestHandler next;
 
         private RequestHandler() {
@@ -86,30 +86,40 @@ public class ASD {
         public abstract String type(String digit);
     }
 
-    public static class Robot extends RequestHandler {
+    public static abstract class AbstractKeypad extends RequestHandler {
 
-        private static final String[][] keypad = {
-                {null, "^", "A"},
-                {"<", "v", ">"},
-        };
+        private final String[][] keypad;
 
-        private static final DirectionNode[][][] nodes = buildKeypadNodes();
+        private final Map<String, Point> buttons;
 
+        private final Rectangle bounds;
 
-        private static final Map<String, Point> buttons = buildButtons();
+        private final Graph<DepthVertex, KeyEdge> graph;
+        private final ShortestPathAlgorithm<DepthVertex, KeyEdge> shortestPathAlgorithm;
 
-        private static final Rectangle bounds = new Rectangle(keypad[0].length, keypad.length);
+        private final Point position;
 
-        private static final Graph<DirectionNode, DirectionEdge> graph = buildGraph();
-        private static final ShortestPathAlgorithm<DirectionNode, DirectionEdge> shortestPathAlgorithm = new AStarShortestPath<>(graph, (b1, b2) -> buttons.get(b1.key).distance(buttons.get(b2.key)));
+        private AbstractKeypad previous;
 
-        private final Point position = new Point(buttons.get("A"));
+        public AbstractKeypad(String[][] keypad, AbstractKeypad previous) {
+            this(keypad);
+            this.previous = previous;
+        }
 
-        private static String getKeyAt(Point position) {
+        public AbstractKeypad(String[][] keypad) {
+            this.keypad = keypad;
+            this.buttons = buildButtons();
+            this.position = new Point(buttons.get("A"));
+            this.bounds = new Rectangle(keypad[0].length, keypad.length);
+            this.graph = buildGraph();
+            this.shortestPathAlgorithm = new AStarShortestPath<>(graph, (b1, b2) -> buttons.get(b1.key).distance(buttons.get(b2.key)));
+        }
+
+        private String getKeyAt(Point position) {
             return keypad[position.y][position.x];
         }
 
-        private static Map<String, Point> buildButtons() {
+        private Map<String, Point> buildButtons() {
             Map<String, Point> buttons = new HashMap<>();
             for (int y = 0; y < keypad.length; y++) {
                 for (int x = 0; x < keypad[y].length; x++) {
@@ -120,20 +130,7 @@ public class ASD {
             return buttons;
         }
 
-        private static DirectionNode[][][] buildKeypadNodes() {
-            DirectionNode[][][] nodes = new DirectionNode[Direction.values().length][keypad.length][keypad[0].length];
-            for (int y = 0; y < keypad.length; y++) {
-                for (int x = 0; x < keypad[y].length; x++) {
-                    if (keypad[y][x] == null) continue;
-                    for (Direction direction : Direction.values()) {
-                        nodes[direction.ordinal()][y][x] = new DirectionNode(keypad[y][x], direction);
-                    }
-                }
-            }
-            return nodes;
-        }
-
-        private static Map<Direction, String> getNeighbours(Point position) {
+        private Map<Direction, String> getNeighbours(Point position) {
             return Arrays.stream(Direction.values())
                     .filter(d -> {
                         Point p = d.move(position);
@@ -142,43 +139,53 @@ public class ASD {
                     .collect(Collectors.toMap(Function.identity(), d -> getKeyAt(d.move(position))));
         }
 
-        private static Graph<DirectionNode, DirectionEdge> buildGraph() {
-            Graph<DirectionNode, DirectionEdge> graph = createEmptyGraph();
+        private Graph<DepthVertex, KeyEdge> createEmptyGraph() {
+            return GraphTypeBuilder.<DepthVertex, KeyEdge>directed()
+                    .allowingMultipleEdges(false)
+                    .allowingSelfLoops(false)
+                    .edgeClass(KeyEdge.class)
+                    .weighted(true)
+                    .buildGraph();
+        }
 
-            Arrays.stream(nodes).flatMap(Arrays::stream).flatMap(Arrays::stream).filter(Objects::nonNull).forEach(graph::addVertex);
-            buttons.keySet().stream().map(DirectionNode::new).forEach(graph::addVertex);
+        private Graph<DepthVertex, KeyEdge> buildGraph() {
+            Graph<DepthVertex, KeyEdge> graph = Optional.ofNullable(previous).map(p -> p.graph).orElse(createEmptyGraph());
 
-            graph.vertexSet().forEach(n -> {
-                if (n.direction == null) {
-                    Arrays.stream(Direction.values()).map(Direction::ordinal)
-                            .map(i -> nodes[i][buttons.get(n.key).y][buttons.get(n.key).x])
-                            .forEach(neighbour -> graph.addEdge(n, neighbour, new DirectionEdge(null, 1000)));
-                } else {
-                    graph.addEdge(n, new DirectionNode(n.key, null), new DirectionEdge(null, 0));
-                    Arrays.stream(Direction.values())
-                            .filter(d -> !Objects.equals(n.direction, d))
-                            .map(Direction::ordinal)
-                            .map(i -> nodes[i][buttons.get(n.key).y][buttons.get(n.key).x])
-                            .forEach(neighbour -> graph.addEdge(n, neighbour, new DirectionEdge(null, 1000)));
+            int pressedLayer = graph.vertexSet().stream().mapToInt(DepthVertex::depth).max().orElse(-1) + 1;
+            int releasedLayer = pressedLayer + 1;
 
-                    Point moved = n.direction.move(buttons.get(n.key));
-                    if (bounds.contains(moved) && getKeyAt(moved) != null) {
-                        if (n.direction == Direction.NORTH || n.direction == Direction.SOUTH) {
-                            graph.addEdge(n, nodes[n.direction.ordinal()][moved.y][moved.x], new DirectionEdge(n.direction, 1));
-                        } else {
-                            graph.addEdge(n, nodes[n.direction.ordinal()][moved.y][moved.x], new DirectionEdge(n.direction, 1));
-                        }
-                    }
-                }
-            });
+            // Layer 0 : The pressed button
+            buttons.keySet().stream().map(k -> new DepthVertex(k, pressedLayer)).forEach(graph::addVertex);
+
+            // Last layer of the previous graph are all connected to the "A" pressed layer
+            graph.vertexSet().stream().filter(v -> Objects.equals(v.depth(), pressedLayer - 1)).forEach(v -> graph.addEdge(v, new DepthVertex("A", pressedLayer), new KeyEdge()));
+
+            // Layer 1 : The released button (position of the arm)
+            buttons.keySet().stream().map(k -> new DepthVertex(k, releasedLayer)).forEach(graph::addVertex);
+
+            // Add the edges between the pressed and released buttons
+            // Going from pressed to released cost 0
+            buttons.keySet().forEach(n -> graph.addEdge(new DepthVertex(n, pressedLayer), new DepthVertex(n, releasedLayer), new KeyEdge()));
+            // Going from released to pressed cost 1 (A)
+            buttons.keySet().forEach(n -> graph.addEdge(new DepthVertex(n, releasedLayer), new DepthVertex(n, pressedLayer), new KeyEdge("A", 1)));
+
+            // Add the edges between the released buttons
+            buttons.forEach((key, position) ->
+                    getNeighbours(position).forEach((direction, neighbourKey) ->
+                            graph.addEdge(
+                                    new DepthVertex(key, releasedLayer),
+                                    new DepthVertex(neighbourKey, releasedLayer),
+                                    new KeyEdge(direction.symbol, releasedLayer))
+                    )
+            );
 
             return graph;
         }
 
         private String getShortestPathTo(String digit) {
-            String command = shortestPathAlgorithm.getPath(new DirectionNode(getKeyAt(this.position), null), new DirectionNode(digit, null)).getEdgeList().stream().map(DirectionEdge::toString).collect(Collectors.joining(""));
+            String command = shortestPathAlgorithm.getPath(new DepthVertex(getKeyAt(this.position), 0), new DepthVertex(digit, 0)).getEdgeList().stream().map(KeyEdge::toString).collect(Collectors.joining(""));
             position.setLocation(buttons.get(digit));
-            return command + "A";
+            return command;
         }
 
         @Override
@@ -192,151 +199,49 @@ public class ASD {
         }
     }
 
-    public static class Digicode extends RequestHandler {
+    public static class Digicode extends AbstractKeypad {
 
-        private static final String[][] digicode = {
-                {"7", "8", "9"},
-                {"4", "5", "6"},
-                {"1", "2", "3"},
-                {null, "0", "A"}
-        };
-
-        private static final DirectionNode[][][] nodes = buildDigicodeNodes();
-
-        private static final Map<String, Point> buttons = buildButtons();
-
-        private static final Rectangle bounds = new Rectangle(digicode[0].length, digicode.length);
-
-        private static final Graph<DirectionNode, DirectionEdge> graph = buildGraph();
-        private static final ShortestPathAlgorithm<DirectionNode, DirectionEdge> shortestPathAlgorithm = new AStarShortestPath<>(graph, (b1, b2) -> buttons.get(b1.key).distance(buttons.get(b2.key)));
-
-        private final Point position = new Point(buttons.get("A"));
-
-        private static String getDigitAt(Point position) {
-            return digicode[position.y][position.x];
-        }
-
-        private static Map<String, Point> buildButtons() {
-            Map<String, Point> buttons = new HashMap<>();
-            for (int y = 0; y < digicode.length; y++) {
-                for (int x = 0; x < digicode[y].length; x++) {
-                    if (digicode[y][x] != null)
-                        buttons.put(digicode[y][x], new Point(x, y));
-                }
-            }
-            return buttons;
-        }
-
-        private static DirectionNode[][][] buildDigicodeNodes() {
-            DirectionNode[][][] nodes = new DirectionNode[Direction.values().length][digicode.length][digicode[0].length];
-            for (int y = 0; y < digicode.length; y++) {
-                for (int x = 0; x < digicode[y].length; x++) {
-                    if (digicode[y][x] == null) continue;
-                    for (Direction direction : Direction.values()) {
-                        nodes[direction.ordinal()][y][x] = new DirectionNode(digicode[y][x], direction);
-                    }
-                }
-            }
-            return nodes;
-        }
-
-        private static Map<Direction, String> getNeighbours(Point position) {
-            return Arrays.stream(Direction.values())
-                    .filter(d -> {
-                        Point p = d.move(position);
-                        return bounds.contains(p) && getDigitAt(p) != null;
-                    })
-                    .collect(Collectors.toMap(Function.identity(), d -> getDigitAt(d.move(position))));
-        }
-
-        private static Graph<DirectionNode, DirectionEdge> buildGraph() {
-            Graph<DirectionNode, DirectionEdge> graph = createEmptyGraph();
-
-            Arrays.stream(nodes).flatMap(Arrays::stream).flatMap(Arrays::stream).filter(Objects::nonNull).forEach(graph::addVertex);
-            buttons.keySet().stream().map(DirectionNode::new).forEach(graph::addVertex);
-
-            graph.vertexSet().forEach(n -> {
-                if (n.direction == null) {
-                    Arrays.stream(Direction.values()).map(Direction::ordinal)
-                            .map(i -> nodes[i][buttons.get(n.key).y][buttons.get(n.key).x])
-                            .forEach(neighbour -> graph.addEdge(n, neighbour, new DirectionEdge(null, 1000)));
-                } else {
-                    graph.addEdge(n, new DirectionNode(n.key, null), new DirectionEdge(null, 0));
-                    Arrays.stream(Direction.values())
-                            .filter(d -> !Objects.equals(n.direction, d))
-                            .map(Direction::ordinal)
-                            .map(i -> nodes[i][buttons.get(n.key).y][buttons.get(n.key).x])
-                            .forEach(neighbour -> graph.addEdge(n, neighbour, new DirectionEdge(null, 1000)));
-
-                    Point moved = n.direction.move(buttons.get(n.key));
-                    if (bounds.contains(moved) && getDigitAt(moved) != null) {
-                        graph.addEdge(n, nodes[n.direction.ordinal()][moved.y][moved.x], new DirectionEdge(n.direction, 1));
-                    }
-                }
+        public Digicode() {
+            super(new String[][]{
+                    {"7", "8", "9"},
+                    {"4", "5", "6"},
+                    {"1", "2", "3"},
+                    {null, "0", "A"}
             });
-
-            return graph;
-        }
-
-        private String getShortestPathTo(String digit) {
-            String command = shortestPathAlgorithm.getPath(new DirectionNode(getDigitAt(this.position), null), new DirectionNode(digit, null)).getEdgeList().stream().map(DirectionEdge::toString).collect(Collectors.joining(""));
-            position.setLocation(buttons.get(digit));
-            return command + "A";
-        }
-
-        @Override
-        public String type(String digit) {
-            String command = Optional.ofNullable(next).map(h -> h.type(digit)).orElse(digit);
-
-            return Arrays.stream(command.split(""))
-                    .filter(s -> !s.isBlank())
-                    .map(this::getShortestPathTo)
-                    .collect(Collectors.joining());
         }
     }
 
-    private static Graph<DirectionNode, DirectionEdge> createEmptyGraph() {
-        return GraphTypeBuilder.<DirectionNode, DirectionEdge>directed()
-                .allowingMultipleEdges(false)
-                .allowingSelfLoops(false)
-                .edgeClass(DirectionEdge.class)
-                .weighted(true)
-                .buildGraph();
-    }
+    public static class Robot extends AbstractKeypad {
 
-    public static class DirectionNode {
-        private final String key;
-        private final Direction direction;
-
-        public DirectionNode(String key, Direction direction) {
-            this.key = key;
-            this.direction = direction;
-        }
-
-        public DirectionNode(String key) {
-            this(key, null);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (!(o instanceof DirectionNode that)) return false;
-            return Objects.equals(key, that.key) && direction == that.direction;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(key, direction);
+        public Robot() {
+            super(new String[][]{
+                    {null, "^", "A"},
+                    {"<", "v", ">"},
+            });
         }
     }
 
-    public static class DirectionEdge extends DefaultWeightedEdge {
+    public record DepthVertex(String key, int depth) {
+
+        public DepthVertex(String key) {
+            this(key, 0);
+        }
+
+    }
+
+
+    public static class KeyEdge extends DefaultWeightedEdge {
         @Getter
-        private final Direction direction;
+        private final String key;
         private final double weight;
 
-        public DirectionEdge(Direction direction, double weight) {
-            this.direction = direction;
+        public KeyEdge(String key, double weight) {
+            this.key = key;
             this.weight = weight;
+        }
+
+        public KeyEdge() {
+            this(null, 0);
         }
 
         @Override
@@ -346,7 +251,7 @@ public class ASD {
 
         @Override
         public String toString() {
-            return Optional.ofNullable(direction).map(d -> d.symbol).orElse("");
+            return Optional.ofNullable(key).orElse("");
         }
     }
 
