@@ -2,13 +2,9 @@ package dev.vinyard.adventofcode.soluce.year2024.day21;
 
 import dev.vinyard.aoc.plugins.solution.api.Solution;
 import dev.vinyard.aoc.plugins.solution.api.annotation.AdventOfCodeSolution;
-import dev.vinyard.adventofcode.utils.FileReader;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
-
-import java.io.IOException;
-import java.net.URISyntaxException;
 
 @AdventOfCodeSolution(year = 2024, day = 21, part = 1, description = "Keypad Conundrum", link = "https://adventofcode.com/2024/day/21", tags = "unsolved")
 public class Day21Part1Solution implements Solution<Object> {
@@ -101,8 +97,9 @@ public class Day21Part1Solution implements Solution<Object> {
         SolutionLexer lexer = new SolutionLexer(charStream);
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         SolutionParser parser = new SolutionParser(tokens);
-        // TODO get the ASD from the parser
 
-        return null;
+        ASD.Root root = parser.root().out;
+
+        return root.calculateComplexity();
     }
 }
