@@ -28,7 +28,7 @@ public class ASD {
         private RequestHandler getRequestHandler() {
             Digicode digicodeDepressurized = new Digicode();
             Robot robot1 = new Robot(digicodeDepressurized);
-
+            Robot robot2 = new Robot(robot1);
             return digicodeDepressurized;
         }
 
@@ -144,51 +144,7 @@ public class ASD {
                     .buildGraph();
         }
 
-        protected Graph<DepthVertex, KeyEdge> buildGraph() {
-            Graph<DepthVertex, KeyEdge> graph = Optional.ofNullable(previous).map(p -> p.graph).orElse(createEmptyGraph());
-
-            int pressedLayer = graph.vertexSet().stream().mapToInt(DepthVertex::depth).max().orElse(-1) + 1;
-            int releasedLayer = pressedLayer + 1;
-
-            // Layer 0 : The pressed button
-            buttons.keySet().stream().map(k -> new DepthVertex(k, pressedLayer)).forEach(graph::addVertex);
-
-            // Layer 1 : The released button (position of the arm)
-            buttons.keySet().stream().map(k -> new DepthVertex(k, releasedLayer)).forEach(graph::addVertex);
-
-            // Before adding the edges between the pressed and released buttons, we need to replace all the edges from the previous graph
-            List<KeyEdge> edges = graph.edgeSet().stream().filter(e -> Objects.nonNull(e.getKey())).toList();
-
-            edges.forEach(e -> {
-                if (Objects.equals(e.getKey(), "A")) {
-                    graph.addEdge(new DepthVertex("A", pressedLayer), graph.getEdgeTarget(e), new KeyEdge("A", 1));
-                } else {
-                    graph.addEdge(new DepthVertex(e.getKey(), pressedLayer), graph.getEdgeTarget(e));
-                }
-                graph.removeEdge(e);
-            });
-
-            // Last layer of the previous graph are all connected to the "A" pressed layer
-            graph.vertexSet().stream().filter(v -> Objects.equals(v.depth(), pressedLayer - 1)).forEach(v -> graph.addEdge(v, new DepthVertex("A", pressedLayer), new KeyEdge()));
-
-            // Add the edges between the pressed and released buttons
-            // Going from pressed to released cost 0
-            buttons.keySet().forEach(n -> graph.addEdge(new DepthVertex(n, pressedLayer), new DepthVertex(n, releasedLayer), new KeyEdge()));
-            // Going from released to pressed cost 1 (A)
-            buttons.keySet().forEach(n -> graph.addEdge(new DepthVertex(n, releasedLayer), new DepthVertex(n, pressedLayer), new KeyEdge("A", 1)));
-
-            // Add the edges between the released buttons
-            buttons.forEach((key, position) ->
-                    getNeighbours(position).forEach((direction, neighbourKey) ->
-                            graph.addEdge(
-                                    new DepthVertex(key, releasedLayer),
-                                    new DepthVertex(neighbourKey, releasedLayer),
-                                    new KeyEdge(direction.symbol, releasedLayer))
-                    )
-            );
-
-            return graph;
-        }
+        protected abstract Graph<DepthVertex, KeyEdge> buildGraph();
 
         private String getShortestPathTo(String digit) {
             String command = shortestPathAlgorithm.getPath(new DepthVertex(getKeyAt(this.position), 0), new DepthVertex(digit, 0)).getEdgeList().stream().map(KeyEdge::toString).collect(Collectors.joining(""));
@@ -270,62 +226,74 @@ public class ASD {
         protected Graph<DepthVertex, KeyEdge> buildGraph() {
             Graph<DepthVertex, KeyEdge> graph = Optional.ofNullable(previous).map(p -> p.graph).orElse(createEmptyGraph());
 
-            int precedingLayer = graph.vertexSet().stream().mapToInt(DepthVertex::depth).max().orElseThrow(); // 1
-            //int pressedLayer = precedingLayer + 1; // 2
-            int currentLayer = precedingLayer + 1; // 3
+            int precedingLayer = graph.vertexSet().stream().mapToInt(DepthVertex::depth).max().orElseThrow();
+            int currentLayer = precedingLayer + 1;
+
+            // Get all the vertices of the previous layer
+            List<DepthVertex> vertices = graph.vertexSet().stream().filter(v -> Objects.equals(v.depth(), precedingLayer)).toList();
+
+            // For each vertex of the previous layer, we add the vertices of the current layer
+            // Each vertex of the previous layer will have a vertex of the current layer for each button
+            vertices.stream().filter(v -> Objects.equals(v.depth(), precedingLayer)).forEach(v ->
+                    buttons.keySet().stream().map(k -> new DepthVertex(k, currentLayer, v.origin() + v.key())).forEach(graph::addVertex)
+            );
+
+            // For each button of the current layer, we add the edges between those buttons, with a cost of 1 and the symbol of the direction is the key to press to go from the source to the target
+            graph.vertexSet().stream().filter(v -> Objects.equals(v.depth(), currentLayer))
+                    .forEach(v ->
+                            getNeighbours(buttons.get(v.key())).forEach(
+                                    (direction, neighbourKey) ->
+                                            graph.addEdge(
+                                                    v,
+                                                    new DepthVertex(neighbourKey, currentLayer, v.origin()),
+                                                    new KeyEdge(direction.symbol, 1))
+                            )
+                    );
+
 
             // Before adding the edges between the pressed and released buttons, we need to replace all the edges from the previous graph
             List<KeyEdge> edges = graph.edgeSet().stream().toList();
 
-            edges.stream().filter(e -> Objects.nonNull(e.getKey())).forEach(e -> { // Edge <
-                DepthVertex source = graph.getEdgeSource(e); // source A
-                DepthVertex target = graph.getEdgeTarget(e); // target 0
+            // Root layer to the current layer (it's key of the root layer to "A" of the current layer, without any cost)
+            edges.stream().filter(e -> Objects.equals(graph.getEdgeSource(e).depth(), 0))
+                    .filter(e -> Objects.equals(graph.getEdgeTarget(e).depth(), precedingLayer))
+                    .forEach(e -> {
+                        DepthVertex source = graph.getEdgeSource(e); // source A
+                        DepthVertex target = graph.getEdgeTarget(e);
 
-                {
-                    // < A
-                    graph.addVertex(new DepthVertex(e.getKey(), currentLayer, source.key()));
-//                    graph.addVertex(new DepthVertex(e.getKey(), pressedLayer, source.key()));
-//                    graph.addEdge(new DepthVertex(e.getKey(), currentLayer, source.key()), new DepthVertex(e.getKey(), pressedLayer, source.key()), new KeyEdge("A", 1));
+                        graph.removeEdge(e);
+                        graph.removeVertex(target);
 
-                    // < 0
-                    graph.addVertex(new DepthVertex(e.getKey(), currentLayer, target.key()));
-//                    graph.addVertex(new DepthVertex(e.getKey(), pressedLayer, target.key()));
-//                    graph.addEdge(new DepthVertex(e.getKey(), currentLayer, target.key()), new DepthVertex(e.getKey(), pressedLayer, target.key()), new KeyEdge("A", 1));
+                        // Add the edge between the key of the root layer and the "A" of the current layer
+                        graph.addEdge(new DepthVertex(source.key(), 0), new DepthVertex("A", currentLayer, target.origin() + target.key()), new KeyEdge());
+                    });
 
-                    // A <
-                    graph.addVertex(new DepthVertex(source.key(), source.depth(), e.getKey()));
+            // Current layer to the root layer (it's "A" of the current layer to the key of the root layer, with a cost of 1 (A))
+            edges.stream().filter(e -> Objects.equals(graph.getEdgeSource(e).depth(), precedingLayer))
+                    .filter(e -> Objects.equals(graph.getEdgeTarget(e).depth(), 0))
+                    .forEach(e -> {
+                        DepthVertex source = graph.getEdgeSource(e); // source A
+                        DepthVertex target = graph.getEdgeTarget(e);
 
-                    // 0 <
-                    graph.addVertex(new DepthVertex(target.key(), target.depth(), e.getKey()));
+                        graph.removeEdge(e);
+                        graph.removeVertex(source);
 
-                    // < A pressed 0 <
-                    if (Objects.equals(source.depth(), target.depth())) {
-                        graph.addEdge(new DepthVertex(e.getKey(), currentLayer, source.key()), new DepthVertex(e.getKey(), currentLayer, target.key()), new KeyEdge("A", 1));
-                    } else {
-                        graph.addEdge(new DepthVertex(e.getKey(), currentLayer, source.key()), new DepthVertex(target.key(), target.depth()), new KeyEdge("A", 1));
-                    }
-                }
+                        // Add the edge between the "A" of the current layer and the key of the root layer
+                        graph.addEdge(new DepthVertex("A", currentLayer, source.origin() + source.key()), new DepthVertex(target.key(), 0), new KeyEdge("A", 1));
+                    });
 
-                graph.removeEdge(e);
-            });
+            edges.stream().filter(e -> Objects.nonNull(e.getKey()))
+                    .filter(e -> Objects.equals(graph.getEdgeSource(e).depth(), precedingLayer))
+                    .filter(e -> Objects.equals(graph.getEdgeTarget(e).depth(), precedingLayer))
+                    .forEach(e -> { // Edge <
+                        DepthVertex source = graph.getEdgeSource(e); // source A
+                        DepthVertex target = graph.getEdgeTarget(e); // target 0
 
+                        graph.removeEdge(e);
 
-            graph.vertexSet().stream().filter(v -> Objects.equals(v.depth(), currentLayer))
-//                    .filter(v -> buttons.containsKey(v.key()))
-                            .forEach(v -> {
-                                getNeighbours(buttons.get(v.key())).forEach((direction, neighbourKey) -> {
-                                    graph.addEdge(v, new DepthVertex(neighbourKey, currentLayer, v.origin()), new KeyEdge(direction.symbol, currentLayer));
-                                });
-
-                            });
-
-            edges.stream().filter(e -> Objects.isNull(e.getKey())).forEach(e -> {
-                DepthVertex source = graph.getEdgeSource(e); // source A
-                DepthVertex target = graph.getEdgeTarget(e); // target 0
-                // Last layer of the previous graph are all connected to the "A" pressed layer
-                graph.addEdge(source, new DepthVertex("A", currentLayer, source.key()), new KeyEdge());
-                graph.removeEdge(e);
-            });
+                        // Add the edge between each edges of the previous layer to the current layer
+                        graph.addEdge(new DepthVertex(e.getKey(), currentLayer, source.origin() + source.key()), new DepthVertex(e.getKey(), currentLayer, target.origin() + target.key()), new KeyEdge("A", 1));
+                    });
 
             return graph;
         }
@@ -333,12 +301,8 @@ public class ASD {
 
     public record DepthVertex(String key, int depth, String origin) {
 
-        public DepthVertex(String key) {
-            this(key, 0, null);
-        }
-
         public DepthVertex(String key, int depth) {
-            this(key, depth, null);
+            this(key, depth, "");
         }
 
     }
