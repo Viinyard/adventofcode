@@ -4,7 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.interfaces.ShortestPathAlgorithm;
-import org.jgrapht.alg.shortestpath.DijkstraShortestPath;
+import org.jgrapht.alg.shortestpath.BFSShortestPath;
 import org.jgrapht.graph.DefaultWeightedEdge;
 import org.jgrapht.graph.builder.GraphTypeBuilder;
 
@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class ASD {
 
@@ -25,30 +26,15 @@ public class ASD {
             this.codes = codes;
         }
 
-        private RequestHandler getRequestHandler() {
-            Digicode digicodeDepressurized = new Digicode();
-            Robot robot1 = new Robot(digicodeDepressurized);
-            Robot robot2 = new Robot(robot1);
-            return digicodeDepressurized;
-        }
+        public long calculateComplexity(int numberOfRobots) {
+            final Digicode digicode = new Digicode().withRobots(numberOfRobots).build();
 
-        public String getCommandForCode(Code code) {
-            RequestHandler requestHandler = getRequestHandler();
-
-            return Arrays.stream(code.getCode().split(""))
-                    .map(requestHandler::type)
-                    .collect(Collectors.joining());
-        }
-
-        private long calculateComplexityOfCode(Code code) {
-            String command = getCommandForCode(code);
-            System.out.println("Code : " + code.getCode() + " - Command : " + command);
-            return getCommandForCode(code).length() * code.getDigits();
-        }
-
-        public long calculateComplexity() {
             return codes.stream()
-                    .mapToLong(this::calculateComplexityOfCode)
+                    .mapToLong(code -> {
+                        String command = digicode.type(code.getCode());
+                        System.out.println("Code : " + code.getCode() + " - Command : " + command);
+                        return command.length() * code.getDigits();
+                    })
                     .sum();
         }
     }
@@ -79,7 +65,7 @@ public class ASD {
 
         }
 
-        public abstract String type(String digit);
+        public abstract Graph<DepthVertex, KeyEdge> buildGraph(Graph<DepthVertex, KeyEdge> graph);
     }
 
     public static abstract class AbstractKeypad extends RequestHandler {
@@ -90,28 +76,13 @@ public class ASD {
 
         private final Rectangle bounds;
 
-        private final Graph<DepthVertex, KeyEdge> graph;
-        private final ShortestPathAlgorithm<DepthVertex, KeyEdge> shortestPathAlgorithm;
-
-        private final Point position;
-
-        protected AbstractKeypad previous;
-
-        public AbstractKeypad(String[][] keypad, AbstractKeypad previous) {
-            this.keypad = keypad;
-            this.previous = previous;
-            this.buttons = buildButtons();
-            this.position = new Point(buttons.get("A"));
-            this.bounds = new Rectangle(keypad[0].length, keypad.length);
-            this.graph = buildGraph();
-            this.shortestPathAlgorithm = new DijkstraShortestPath<>(graph);
-        }
-
         public AbstractKeypad(String[][] keypad) {
-            this(keypad, null);
+            this.keypad = keypad;
+            this.buttons = buildButtons();
+            this.bounds = new Rectangle(keypad[0].length, keypad.length);
         }
 
-        private String getKeyAt(Point position) {
+        protected String getKeyAt(Point position) {
             return keypad[position.y][position.x];
         }
 
@@ -144,26 +115,14 @@ public class ASD {
                     .buildGraph();
         }
 
-        protected abstract Graph<DepthVertex, KeyEdge> buildGraph();
 
-        private String getShortestPathTo(String digit) {
-            String command = shortestPathAlgorithm.getPath(new DepthVertex(getKeyAt(this.position), 0), new DepthVertex(digit, 0)).getEdgeList().stream().map(KeyEdge::toString).collect(Collectors.joining(""));
-            position.setLocation(buttons.get(digit));
-            return command;
-        }
-
-        @Override
-        public String type(String digit) {
-            String command = Optional.ofNullable(next).map(h -> h.type(digit)).orElse(digit);
-
-            return Arrays.stream(command.split(""))
-                    .filter(s -> !s.isBlank())
-                    .map(this::getShortestPathTo)
-                    .collect(Collectors.joining());
-        }
     }
 
     public static class Digicode extends AbstractKeypad {
+
+        private final Point position = new Point(buttons.get("A"));
+
+        private ShortestPathAlgorithm<DepthVertex, KeyEdge> shortestPathAlgorithm;
 
         public Digicode() {
             super(new String[][]{
@@ -174,9 +133,29 @@ public class ASD {
             });
         }
 
-        protected Graph<DepthVertex, KeyEdge> buildGraph() {
-            Graph<DepthVertex, KeyEdge> graph = createEmptyGraph();
+        public Digicode withRobots(int numberOfRobots) {
+            Stack<RequestHandler> handlers = Stream.generate(Robot::new).limit(numberOfRobots).collect(Collectors.toCollection(Stack::new));
 
+            handlers.stream().reduce((first, second) -> {
+                first.setNext(second);
+                return second;
+            });
+
+            this.setNext(handlers.getFirst());
+
+            return this;
+        }
+
+        public Digicode build() {
+            Graph<DepthVertex, KeyEdge> graph = buildGraph(createEmptyGraph());
+            System.out.println("Vertices = " + graph.vertexSet().size());
+            System.out.println("Edges = " + graph.edgeSet().size());
+            this.shortestPathAlgorithm = new BFSShortestPath<>(graph);
+
+            return this;
+        }
+
+        public Graph<DepthVertex, KeyEdge> buildGraph(Graph<DepthVertex, KeyEdge> graph) {
             int pressedLayer = 0;
             int releasedLayer = 1;
 
@@ -202,7 +181,20 @@ public class ASD {
                     )
             );
 
-            return graph;
+            return Optional.ofNullable(next).map(n -> n.buildGraph(graph)).orElse(graph);
+        }
+
+        private String getShortestPathTo(String digit) {
+            String command = this.shortestPathAlgorithm.getPath(new DepthVertex(getKeyAt(this.position), 0), new DepthVertex(digit, 0)).getEdgeList().stream().map(KeyEdge::toString).collect(Collectors.joining(""));
+            position.setLocation(buttons.get(digit));
+            return command;
+        }
+
+        public String type(String command) {
+            return Arrays.stream(command.split(""))
+                    .filter(s -> !s.isBlank())
+                    .map(this::getShortestPathTo)
+                    .collect(Collectors.joining());
         }
 
     }
@@ -216,16 +208,8 @@ public class ASD {
             });
         }
 
-        public Robot(AbstractKeypad previous) {
-            super(new String[][]{
-                    {null, "^", "A"},
-                    {"<", "v", ">"},
-            }, previous);
-        }
-
-        protected Graph<DepthVertex, KeyEdge> buildGraph() {
-            Graph<DepthVertex, KeyEdge> graph = Optional.ofNullable(previous).map(p -> p.graph).orElse(createEmptyGraph());
-
+        @Override
+        public Graph<DepthVertex, KeyEdge> buildGraph(Graph<DepthVertex, KeyEdge> graph) {
             int precedingLayer = graph.vertexSet().stream().mapToInt(DepthVertex::depth).max().orElseThrow();
             int currentLayer = precedingLayer + 1;
 
@@ -295,7 +279,7 @@ public class ASD {
                         graph.addEdge(new DepthVertex(e.getKey(), currentLayer, source.origin() + source.key()), new DepthVertex(e.getKey(), currentLayer, target.origin() + target.key()), new KeyEdge("A", 1));
                     });
 
-            return graph;
+            return Optional.ofNullable(next).map(n -> n.buildGraph(graph)).orElse(graph);
         }
     }
 

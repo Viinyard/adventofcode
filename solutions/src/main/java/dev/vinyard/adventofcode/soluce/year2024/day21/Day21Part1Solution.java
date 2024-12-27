@@ -100,6 +100,6 @@ public class Day21Part1Solution implements Solution<Object> {
 
         ASD.Root root = parser.root().out;
 
-        return root.calculateComplexity();
+        return root.calculateComplexity(2);
     }
 }
