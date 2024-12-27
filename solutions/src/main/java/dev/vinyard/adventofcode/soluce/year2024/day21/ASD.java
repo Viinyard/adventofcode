@@ -120,7 +120,7 @@ public class ASD {
 
     public static class Digicode extends AbstractKeypad {
 
-        private final Point position = new Point(buttons.get("A"));
+        private String key = "A";
 
         private ShortestPathAlgorithm<DepthVertex, KeyEdge> shortestPathAlgorithm;
 
@@ -185,8 +185,8 @@ public class ASD {
         }
 
         private String getShortestPathTo(String digit) {
-            String command = this.shortestPathAlgorithm.getPath(new DepthVertex(getKeyAt(this.position), 0), new DepthVertex(digit, 0)).getEdgeList().stream().map(KeyEdge::toString).collect(Collectors.joining(""));
-            position.setLocation(buttons.get(digit));
+            String command = this.shortestPathAlgorithm.getPath(new DepthVertex(this.key, 0), new DepthVertex(digit, 0)).getEdgeList().stream().map(KeyEdge::toString).collect(Collectors.joining(""));
+            key = digit;
             return command;
         }
 
