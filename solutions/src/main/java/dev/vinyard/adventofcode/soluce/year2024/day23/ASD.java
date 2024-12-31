@@ -2,12 +2,14 @@ package dev.vinyard.adventofcode.soluce.year2024.day23;
 
 import lombok.Getter;
 import org.jgrapht.Graph;
+import org.jgrapht.alg.clique.BronKerboschCliqueFinder;
 import org.jgrapht.alg.cycle.HawickJamesSimpleCycles;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.builder.GraphTypeBuilder;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class ASD {
@@ -20,7 +22,6 @@ public class ASD {
             this.connections = connections;
         }
 
-        // https://jgrapht.org/javadoc-1.3.0/org/jgrapht/alg/clique/BronKerboschCliqueFinder.html
         public long part1() {
             Graph<Computer, DefaultEdge> graph = createEmptyGraph();
 
@@ -37,6 +38,21 @@ public class ASD {
             // divide by 2 because the cycles are counted twice, once for each direction (it's a directed graph)
             return c.findSimpleCycles().stream().filter(t -> t.size() == 3)
                     .filter(t -> t.stream().anyMatch(c1 -> c1.getName().startsWith("t"))).count() / 2;
+        }
+
+        public String part2() {
+            Graph<Computer, DefaultEdge> graph = createEmptyGraph();
+
+            connections.stream().flatMap(Connection::stream).distinct().forEach(graph::addVertex);
+
+            connections.forEach(c -> {
+                graph.addEdge(c.getComputer1(), c.getComputer2());
+                graph.addEdge(c.getComputer2(), c.getComputer1());
+            });
+
+            BronKerboschCliqueFinder<Computer, DefaultEdge> c = new BronKerboschCliqueFinder<>(graph);
+
+            return c.maximumIterator().next().stream().map(Computer::getName).sorted().collect(Collectors.joining(","));
         }
 
         private Graph<Computer, DefaultEdge> createEmptyGraph() {
