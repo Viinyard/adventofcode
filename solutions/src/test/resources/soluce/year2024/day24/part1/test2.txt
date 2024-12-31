@@ -1,14 +1,4 @@
-    x00: 1
-x01: 1
-x02: 1
-y00: 0
-y01: 1
-y02: 0
-
-x00 AND y00 -> z00
-x01 XOR y01 -> z01
-x02 OR y02 -> z02
-    x00: 1
+x00: 1
 x01: 0
 x02: 1
 x03: 1
@@ -55,39 +45,3 @@ y03 OR x01 -> nrd
 hwm AND bqk -> z03
 tgd XOR rvg -> z12
 tnw OR pbm -> gnj
-    bfw: 1
-bqk: 1
-djm: 1
-ffh: 0
-fgs: 1
-frj: 1
-fst: 1
-gnj: 1
-hwm: 1
-kjc: 0
-kpj: 1
-kwq: 0
-mjb: 1
-nrd: 1
-ntg: 0
-pbm: 1
-psh: 1
-qhw: 1
-rvg: 0
-tgd: 0
-tnw: 1
-vdt: 1
-wpb: 0
-z00: 0
-z01: 0
-z02: 0
-z03: 1
-z04: 0
-z05: 1
-z06: 1
-z07: 1
-z08: 1
-z09: 1
-z10: 1
-z11: 0
-z12: 0
