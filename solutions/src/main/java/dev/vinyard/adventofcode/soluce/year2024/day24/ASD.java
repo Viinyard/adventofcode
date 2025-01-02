@@ -4,8 +4,10 @@ import lombok.Data;
 import lombok.Getter;
 
 import java.util.*;
-import java.util.function.Predicate;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class ASD {
 
@@ -64,7 +66,7 @@ public class ASD {
             Wire b = bWires.poll();
             Wire z = zWires.poll();
 
-            rippleCarryAdder.setFirstHalfAdder(HalfAdder.buildByABSum(a, b, z, gates));
+            rippleCarryAdder.setFirstHalfAdder(HalfAdder.buildFrom(a, b, z, gates));
 
             Wire cin = rippleCarryAdder.getFirstHalfAdder().getCarry();
 
@@ -73,7 +75,7 @@ public class ASD {
                 b = bWires.poll();
                 z = zWires.poll();
 
-                FullAdder fullAdder = new FullAdder().buildByABCinSum(a, b, cin, z, gates);
+                FullAdder fullAdder = new FullAdder().buildFrom(a, b, cin, z, gates);
 
                 rippleCarryAdder.getFullAdders().add(fullAdder);
 
@@ -100,177 +102,31 @@ public class ASD {
         public HalfAdder() {
         }
 
-        public void findBySum(Wire sum, List<Gate> gates) {
-            this.xorGate = gates.stream().filter(XorGate.class::isInstance)
-                    .map(XorGate.class::cast)
-                    .filter(g -> g.getOutput() == sum)
-                    .findAny().orElseThrow();
-
-            this.a = this.xorGate.getLeft();
-            this.b = this.xorGate.getRight();
-
-            this.andGate = gates.stream().filter(AndGate.class::isInstance)
-                    .map(AndGate.class::cast)
-                    .filter(g -> g.getLeft() == a && g.getRight() == b)
-                    .findAny().orElseThrow();
-        }
-
-        public static HalfAdder buildByAB(Wire a, Wire b, List<Gate> gates) {
+        public static HalfAdder buildFrom(Wire a, Wire b, List<Gate> gates) {
             HalfAdder halfAdder = new HalfAdder();
 
             halfAdder.setA(a);
             halfAdder.setB(b);
 
-            Predicate<Gate> gatePredicateAB = g -> g.getLeft() == halfAdder.getA() && g.getRight() == halfAdder.getB();
-            Predicate<Gate> gatePredicateBA = g -> g.getLeft() == halfAdder.getB() && g.getRight() == halfAdder.getA();
-            Predicate<Gate> gatePredicate = gatePredicateAB.or(gatePredicateBA);
+            Gate xorGate = Gate.findGate(
+                    halfAdder::getA, halfAdder::setA,
+                    halfAdder::getB, halfAdder::setB,
+                    XorGate.class, gates);
 
-            try {
-                halfAdder.setXorGate(gates.stream().filter(XorGate.class::isInstance)
-                        .map(XorGate.class::cast)
-                        .filter(gatePredicate)
-                        .findAny().orElseThrow(() -> new IllegalStateException("XorGate not found for a = %s and b = %s".formatted(a.getName(), b.getName()))));
-            } catch (Exception e) {
-                Optional<XorGate> xorGateA = gates.stream().filter(XorGate.class::isInstance)
-                        .map(XorGate.class::cast)
-                        .filter(g -> g.getLeft() == halfAdder.getA() || g.getRight() == halfAdder.getA())
-                        .findAny();
+            halfAdder.setXorGate((XorGate) xorGate);
 
-                xorGateA.ifPresent(g -> {
-                    Wire bWire = halfAdder.getB();
+            Gate andGate = Gate.findGate(
+                    halfAdder::getA, halfAdder::setA,
+                    halfAdder::getB, halfAdder::setB,
+                    AndGate.class, gates);
 
-                    if (g.getLeft() == halfAdder.getA()) {
-                        gates.stream().filter(gate -> gate.getOutput() == g.getRight())
-                                .findAny().ifPresent(gate -> gate.setOutput(bWire));
-
-                        halfAdder.setB(g.getRight());
-
-                        halfAdder.setXorGate(gates.stream().filter(XorGate.class::isInstance)
-                                .map(XorGate.class::cast)
-                                .filter(gatePredicate)
-                                .findAny().orElseThrow());
-                    } else {
-                        gates.stream().filter(gate -> gate.getOutput() == g.getLeft())
-                                .findAny().ifPresent(gate -> gate.setOutput(bWire));
-
-                        halfAdder.setB(g.getLeft());
-
-                        halfAdder.setXorGate(gates.stream().filter(XorGate.class::isInstance)
-                                .map(XorGate.class::cast)
-                                .filter(gatePredicate)
-                                .findAny().orElseThrow());
-                    }
-                });
-
-                Optional<XorGate> xorGateB = gates.stream().filter(XorGate.class::isInstance)
-                        .map(XorGate.class::cast)
-                        .filter(g -> g.getLeft() == halfAdder.getB() || g.getRight() == halfAdder.getB())
-                        .findAny();
-
-                xorGateB.ifPresent(g -> {
-                    Wire aWire = halfAdder.getA();
-
-                    if (g.getLeft() == halfAdder.getB()) {
-                        gates.stream().filter(gate -> gate.getOutput() == g.getRight())
-                                .findAny().ifPresent(gate -> gate.setOutput(aWire));
-
-                        halfAdder.setA(g.getRight());
-
-                        halfAdder.setXorGate(gates.stream().filter(XorGate.class::isInstance)
-                                .map(XorGate.class::cast)
-                                .filter(gatePredicate)
-                                .findAny().orElseThrow());
-                    } else {
-                        gates.stream().filter(gate -> gate.getOutput() == g.getLeft())
-                                .findAny().ifPresent(gate -> gate.setOutput(aWire));
-
-                        halfAdder.setA(g.getLeft());
-
-                        halfAdder.setXorGate(gates.stream().filter(XorGate.class::isInstance)
-                                .map(XorGate.class::cast)
-                                .filter(gatePredicate)
-                                .findAny().orElseThrow());
-                    }
-                });
-            }
-
-            try {
-                halfAdder.setAndGate(gates.stream().filter(AndGate.class::isInstance)
-                        .map(AndGate.class::cast)
-                        .filter(gatePredicate)
-                        .findAny().orElseThrow(() -> new IllegalStateException("AndGate not found for a = %s and b = %s".formatted(a.getName(), b.getName()))));
-            } catch (Exception e) {
-                Optional<AndGate> andGateA = gates.stream().filter(AndGate.class::isInstance)
-                        .map(AndGate.class::cast)
-                        .filter(g -> g.getLeft() == halfAdder.getA() || g.getRight() == halfAdder.getA())
-                        .findAny();
-
-                andGateA.ifPresent(g -> {
-                    Wire bWire = halfAdder.getB();
-
-                    if (g.getLeft() == halfAdder.getA()) {
-                        gates.stream().filter(gate -> gate.getOutput() == g.getRight())
-                                .findAny().ifPresent(gate -> gate.setOutput(bWire));
-
-                        halfAdder.setB(g.getRight());
-
-                        halfAdder.setAndGate(gates.stream().filter(AndGate.class::isInstance)
-                                .map(AndGate.class::cast)
-                                .filter(gatePredicate)
-                                .findAny().orElseThrow());
-                    } else {
-                        gates.stream().filter(gate -> gate.getOutput() == g.getLeft())
-                                .findAny().ifPresent(gate -> gate.setOutput(bWire));
-
-                        halfAdder.setB(g.getLeft());
-
-                        halfAdder.setAndGate(gates.stream().filter(AndGate.class::isInstance)
-                                .map(AndGate.class::cast)
-                                .filter(gatePredicate)
-                                .findAny().orElseThrow());
-                    }
-                });
-
-                if (andGateA.isEmpty()) {
-                    Optional<AndGate> andGateB = gates.stream().filter(AndGate.class::isInstance)
-                            .map(AndGate.class::cast)
-                            .filter(g -> g.getLeft() == halfAdder.getB() || g.getRight() == halfAdder.getB())
-                            .findAny();
-
-                    andGateB.ifPresent(g -> {
-                        Wire aWire = halfAdder.getA();
-
-                        if (g.getLeft() == halfAdder.getB()) {
-                            gates.stream().filter(gate -> gate.getOutput() == g.getRight())
-                                    .findAny().ifPresent(gate -> gate.setOutput(aWire));
-
-                            halfAdder.setA(g.getRight());
-
-                            halfAdder.setAndGate(gates.stream().filter(AndGate.class::isInstance
-                                    ).map(AndGate.class::cast)
-                                    .filter(gatePredicate)
-                                    .findAny().orElseThrow());
-                        } else {
-                            gates.stream().filter(gate -> gate.getOutput() == g.getLeft())
-                                    .findAny().ifPresent(gate -> gate.setOutput(aWire));
-
-                            halfAdder.setA(g.getLeft());
-
-                            halfAdder.setAndGate(gates.stream().filter(AndGate.class::isInstance)
-                                    .map(AndGate.class::cast)
-                                    .filter(gatePredicate)
-                                    .findAny().orElseThrow());
-                        }
-                    });
-                }
-            }
-
+            halfAdder.setAndGate((AndGate) andGate);
 
             return halfAdder;
         }
 
-        public static HalfAdder buildByABSum(Wire a, Wire b, Wire sum, List<Gate> gates) {
-            HalfAdder halfAdder = buildByAB(a, b, gates);
+        public static HalfAdder buildFrom(Wire a, Wire b, Wire sum, List<Gate> gates) {
+            HalfAdder halfAdder = buildFrom(a, b, gates);
 
             if (halfAdder.getSum() != sum) {
                 throw new IllegalStateException("Sum wire should be %s the same for a = %s and b = %s, but we found %s".formatted(sum.getName(), a.getName(), b.getName(), halfAdder.getSum()));
@@ -313,94 +169,23 @@ public class ASD {
         public FullAdder() {
         }
 
-        public FullAdder buildByABCinSum(Wire a, Wire b, Wire cin, Wire sum, List<Gate> gates) {
+
+        public FullAdder buildFrom(Wire a, Wire b, Wire cin, Wire sum, List<Gate> gates) {
             FullAdder fullAdder = new FullAdder();
 
             fullAdder.setA(a);
             fullAdder.setB(b);
             fullAdder.setCin(cin);
 
-            fullAdder.setHalfAdderAB(HalfAdder.buildByAB(a, b, gates));
+            fullAdder.setHalfAdderAB(HalfAdder.buildFrom(a, b, gates));
 
-            fullAdder.setHalfAdderSumCin(HalfAdder.buildByAB(fullAdder.getHalfAdderAB().getSum(), cin, gates));
+            fullAdder.setHalfAdderSumCin(HalfAdder.buildFrom(fullAdder.getHalfAdderAB().getSum(), cin, gates));
 
-            Predicate<Gate> gatePredicateAB = g -> g.getLeft() == fullAdder.getHalfAdderSumCin().getCarry() && g.getRight() ==  fullAdder.getHalfAdderAB().getCarry();
-            Predicate<Gate> gatePredicateBA = g -> g.getLeft() == fullAdder.getHalfAdderAB().getCarry() && g.getRight() == fullAdder.getHalfAdderSumCin().getCarry();
-            Predicate<Gate> gatePredicate = gatePredicateAB.or(gatePredicateBA);
-
-            try {
-                fullAdder.setOrGateCout(gates.stream().filter(OrGate.class::isInstance)
-                        .map(OrGate.class::cast)
-                        .filter(gatePredicate)
-                        .findAny().orElseThrow(() -> new IllegalStateException("OrGate not found for a = %s and b = %s".formatted(a.getName(), b.getName()))));
-            } catch (Exception e) {
-                Optional<OrGate> orGateHalfAdderSumCim = gates.stream().filter(OrGate.class::isInstance)
-                        .map(OrGate.class::cast)
-                        .filter(g -> g.getLeft() == fullAdder.getHalfAdderSumCin().getCarry() || g.getRight() ==  fullAdder.getHalfAdderSumCin().getCarry())
-                        .findAny();
-
-                orGateHalfAdderSumCim.ifPresent(g -> {
-                    Wire carry = fullAdder.getHalfAdderAB().getCarry();
-
-                    if (g.getLeft() == fullAdder.getHalfAdderSumCin().getCarry()) {
-                        gates.stream().filter(gate -> gate.getOutput() == g.getRight())
-                                .findAny().ifPresent(gate -> gate.setOutput(carry));
-
-                        fullAdder.getHalfAdderAB().setCarry(g.getRight());
-
-                        fullAdder.setOrGateCout(gates.stream().filter(OrGate.class::isInstance)
-                                .map(OrGate.class::cast)
-                                .filter(gatePredicate)
-                                .findAny().orElseThrow());
-
-                    } else {
-                        gates.stream().filter(gate -> gate.getOutput() == g.getLeft())
-                                .findAny().ifPresent(gate -> gate.setOutput(carry));
-
-                        fullAdder.getHalfAdderAB().setCarry(g.getLeft());
-
-                        fullAdder.setOrGateCout(gates.stream().filter(OrGate.class::isInstance)
-                                .map(OrGate.class::cast)
-                                .filter(gatePredicate)
-                                .findAny().orElseThrow());
-
-
-                    }
-                });
-
-                if (orGateHalfAdderSumCim.isEmpty()) {
-                    Optional<OrGate> orGateHalfAdderAB = gates.stream().filter(OrGate.class::isInstance)
-                            .map(OrGate.class::cast)
-                            .filter(g -> g.getLeft() == fullAdder.getHalfAdderAB().getCarry() || g.getRight() == fullAdder.getHalfAdderAB().getCarry())
-                            .findAny();
-
-                    orGateHalfAdderAB.ifPresent(g -> {
-                        Wire carry = fullAdder.getHalfAdderSumCin().getCarry();
-
-                        if (g.getLeft() == fullAdder.getHalfAdderAB().getCarry()) {
-                            gates.stream().filter(gate -> gate.getOutput() == g.getRight())
-                                    .findAny().ifPresent(gate -> gate.setOutput(carry));
-
-                            fullAdder.getHalfAdderSumCin().setCarry(g.getRight());
-
-                            fullAdder.setOrGateCout(gates.stream().filter(OrGate.class::isInstance)
-                                    .map(OrGate.class::cast)
-                                    .filter(gatePredicate)
-                                    .findAny().orElseThrow());
-                        } else {
-                            gates.stream().filter(gate -> gate.getOutput() == g.getLeft())
-                                    .findAny().ifPresent(gate -> gate.setOutput(carry));
-
-                            fullAdder.getHalfAdderSumCin().setCarry(g.getLeft());
-
-                            fullAdder.setOrGateCout(gates.stream().filter(OrGate.class::isInstance)
-                                    .map(OrGate.class::cast)
-                                    .filter(gatePredicate)
-                                    .findAny().orElseThrow());
-                        }
-                    });
-                }
-            }
+            Gate gate = Gate.findGate(
+                    fullAdder.getHalfAdderSumCin()::getCarry, fullAdder.getHalfAdderSumCin()::setCarry,
+                    fullAdder.getHalfAdderAB()::getCarry, fullAdder.getHalfAdderAB()::setCarry,
+                    OrGate.class, gates);
+            fullAdder.setOrGateCout((OrGate) gate);
 
             if (fullAdder.getSum() != sum) {
                 gates.stream().filter(g -> g.getOutput() == sum)
@@ -490,6 +275,10 @@ public class ASD {
             }
         }
 
+        public boolean isConnected(Wire... wire) {
+            return Arrays.stream(wire).allMatch(l -> List.of(left, right).contains(l));
+        }
+
         public void setOutput(Wire output) {
             Root.switchedWires.add(this.output);
             Root.switchedWires.add(output);
@@ -510,6 +299,50 @@ public class ASD {
         }
 
         protected abstract boolean evaluate(boolean left, boolean right);
+
+        public static Supplier<Boolean> fixGate(Wire current, Wire missing, Consumer<Wire> replaceWire, Class<? extends  Gate> clazz, List<Gate> gates) {
+            return () -> {
+                Optional<? extends Gate> replaceGate = gates.stream().filter(clazz::isInstance)
+                        .map(clazz::cast)
+                        .filter(g -> g.isConnected(current))
+                        .findAny();
+
+                replaceGate.ifPresent(g -> {
+
+                    if (g.getLeft() == current) {
+                        gates.stream().filter(gate -> gate.getOutput() == g.getRight())
+                                .findAny().ifPresent(gate -> gate.setOutput(missing));
+
+                        replaceWire.accept(g.getRight());
+                    } else if (g.getRight() == current) {
+                        gates.stream().filter(gate -> gate.getOutput() == g.getLeft())
+                                .findAny().ifPresent(gate -> gate.setOutput(missing));
+
+                        replaceWire.accept(g.getLeft());
+                    }
+                });
+
+                return replaceGate.isPresent();
+            };
+        }
+
+        public static Gate findGate(Supplier<Wire> getA, Consumer<Wire> setA, Supplier<Wire> getB, Consumer<Wire> setB, Class<? extends Gate> clazz, List<Gate> gates) {
+
+            try {
+                return gates.stream().filter(clazz::isInstance)
+                        .filter(g -> g.isConnected(getA.get(), getB.get()))
+                        .findAny().orElseThrow(() -> new IllegalStateException("OrGate not found for a = %s and b = %s".formatted(getA.get().getName(), getB.get().getName())));
+            } catch (IllegalStateException e) {
+                Stream.of(
+                        fixGate(getA.get(), getB.get(), setB, clazz, gates),
+                        fixGate(getB.get(), getA.get(), setA, clazz, gates)
+                ).filter(Supplier::get).findAny().orElseThrow(() -> e);
+
+                return gates.stream().filter(clazz::isInstance)
+                        .filter(g -> g.isConnected(getA.get(), getB.get()))
+                        .findAny().orElseThrow(() -> new IllegalStateException("OrGate not found for a = %s and b = %s".formatted(getA.get().getName(), getB.get().getName())));
+            }
+        }
     }
 
     public static class AndGate extends Gate {
