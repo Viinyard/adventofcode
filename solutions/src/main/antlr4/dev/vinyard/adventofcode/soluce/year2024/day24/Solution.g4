@@ -22,7 +22,7 @@ root returns [ASD.Root out]
 
 initialization[Map<String, ASD.Wire> wires]
     : wire[wires] COLON BOOL {
-        $wire.out.connect($BOOL.text.equals("1"));
+        $wire.out.connect(Long.valueOf($BOOL.text));
     }
     ;
 
