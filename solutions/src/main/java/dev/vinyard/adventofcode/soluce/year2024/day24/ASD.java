@@ -15,7 +15,6 @@ public class ASD {
 
         private final List<Wire> wires;
         private final List<Gate> gates;
-        public static Set<Wire> switchedWires = new HashSet<>();
 
         public Root(List<Wire> wires, List<Gate> gates) {
             this.wires = wires;
@@ -23,40 +22,40 @@ public class ASD {
         }
 
         public long evaluate() {
-            String binary = wires.stream().filter(w -> w.getName().startsWith("z")).sorted(Comparator.comparing(Wire::getName).reversed())
-                    .map(Wire::getValue).map(b -> b ? "1" : "0").collect(Collectors.joining());
-
-            return Long.parseLong(binary, 2);
-        }
-
-        public RippleCarryAdder buildRippleCarryAdder() {
-            return new RippleCarryAdder().build(wires, gates);
+            return wires.stream().filter(w -> w.getName().startsWith("z")).sorted(Comparator.comparing(Wire::getName).reversed())
+                    .mapToLong(Wire::getValue).reduce(0, (a, b) -> a * 2 + b);
         }
 
         public String part2() {
-            RippleCarryAdder rippleCarryAdder = buildRippleCarryAdder();
+            RippleCarryAdder rippleCarryAdder = new RippleCarryAdder(wires, gates);
 
-            return switchedWires
-                    .stream().map(Wire::getName).sorted().collect(Collectors.joining(","));
+            long x = wires.stream().filter(w -> w.getName().startsWith("x")).sorted(Comparator.comparing(Wire::getName).reversed())
+                    .mapToLong(Wire::getValue).reduce(0, (a, b) -> a * 2 + b);
+            long y = wires.stream().filter(w -> w.getName().startsWith("y")).sorted(Comparator.comparing(Wire::getName).reversed())
+                    .mapToLong(Wire::getValue).reduce(0, (a, b) -> a * 2 + b);
+            long z = wires.stream().filter(w -> w.getName().startsWith("z")).sorted(Comparator.comparing(Wire::getName).reversed())
+                    .mapToLong(Wire::getValue).reduce(0, (a, b) -> a * 2 + b);
+
+            assert x + y == z : "x + y should be equal to z";
+
+            return rippleCarryAdder.getFixedOutputs().stream().map(Wire::getName).sorted().collect(Collectors.joining(","));
         }
 
     }
 
     /**
-     * https://upload.wikimedia.org/wikipedia/commons/8/85/RippleCarry2.gif
+     * <a href="https://upload.wikimedia.org/wikipedia/commons/8/85/RippleCarry2.gif">Ripple Carry Adder</a>
      */
     @Data
-    public static class RippleCarryAdder {
+    public static class RippleCarryAdder implements OutputFixListener {
 
         private HalfAdder firstHalfAdder;
         private LinkedList<FullAdder> fullAdders = new LinkedList<>();
+        private final List<Wire> fixedOutputs = new ArrayList<>();
 
-        public RippleCarryAdder() {
+        public RippleCarryAdder(List<Wire> wires, List<Gate> gates) {
 
-        }
-
-        public RippleCarryAdder build(List<Wire> wires, List<Gate> gates) {
-            RippleCarryAdder rippleCarryAdder = new RippleCarryAdder();
+            gates.forEach(g -> g.addOutputFixListener(this));
 
             LinkedList<Wire> aWires = wires.stream().filter(w -> w.getName().startsWith("x")).sorted(Comparator.comparing(Wire::getName)).collect(Collectors.toCollection(LinkedList::new));
             LinkedList<Wire> bWires = wires.stream().filter(w -> w.getName().startsWith("y")).sorted(Comparator.comparing(Wire::getName)).collect(Collectors.toCollection(LinkedList::new));
@@ -66,28 +65,33 @@ public class ASD {
             Wire b = bWires.poll();
             Wire z = zWires.poll();
 
-            rippleCarryAdder.setFirstHalfAdder(HalfAdder.buildFrom(a, b, z, gates));
+            this.setFirstHalfAdder(new HalfAdder(a, b, z, gates));
 
-            Wire cin = rippleCarryAdder.getFirstHalfAdder().getCarry();
+            Supplier<Wire> getCin = this.getFirstHalfAdder()::getCarry;
+            Consumer<Wire> setCin = this.getFirstHalfAdder()::setCarry;
 
             while (!aWires.isEmpty() && !bWires.isEmpty()) {
                 a = aWires.poll();
                 b = bWires.poll();
                 z = zWires.poll();
 
-                FullAdder fullAdder = new FullAdder().buildFrom(a, b, cin, z, gates);
+                FullAdder fullAdder = new FullAdder().buildFrom(a, b, getCin, setCin, z, gates);
 
-                rippleCarryAdder.getFullAdders().add(fullAdder);
+                this.getFullAdders().add(fullAdder);
 
-                cin = fullAdder.getCout();
+                getCin = fullAdder::getCout;
+                setCin = fullAdder::setCout;
             }
+        }
 
-            return rippleCarryAdder;
+        @Override
+        public void onOutputFix(Wire oldOutput, Wire newOutput) {
+            fixedOutputs.add(oldOutput);
         }
     }
 
     /**
-     * https://upload.wikimedia.org/wikipedia/commons/9/92/Halfadder.gif
+     * <a href="https://upload.wikimedia.org/wikipedia/commons/9/92/Halfadder.gif">Half Adder</a>
      */
     @Data
     public static class HalfAdder {
@@ -99,40 +103,27 @@ public class ASD {
         private XorGate xorGate;
         private AndGate andGate;
 
-        public HalfAdder() {
+        public HalfAdder(Supplier<Wire> getA, Consumer<Wire> setA, Supplier<Wire> getB, Consumer<Wire> setB, List<Gate> gates) {
+            this.setA(getA.get());
+            this.setB(getB.get());
+
+            this.setXorGate((XorGate) Gate.findGate(
+                    getA, setA,
+                    getB, setB,
+                    XorGate.class, gates));
+
+            this.setAndGate((AndGate) Gate.findGate(
+                    getA, setA,
+                    getB, setB,
+                    AndGate.class, gates));
         }
 
-        public static HalfAdder buildFrom(Wire a, Wire b, List<Gate> gates) {
-            HalfAdder halfAdder = new HalfAdder();
+        public HalfAdder(Wire a, Wire b, Wire sum, List<Gate> gates) {
+            this(() -> a, setA -> {}, () -> b, setB -> {}, gates);
 
-            halfAdder.setA(a);
-            halfAdder.setB(b);
-
-            Gate xorGate = Gate.findGate(
-                    halfAdder::getA, halfAdder::setA,
-                    halfAdder::getB, halfAdder::setB,
-                    XorGate.class, gates);
-
-            halfAdder.setXorGate((XorGate) xorGate);
-
-            Gate andGate = Gate.findGate(
-                    halfAdder::getA, halfAdder::setA,
-                    halfAdder::getB, halfAdder::setB,
-                    AndGate.class, gates);
-
-            halfAdder.setAndGate((AndGate) andGate);
-
-            return halfAdder;
-        }
-
-        public static HalfAdder buildFrom(Wire a, Wire b, Wire sum, List<Gate> gates) {
-            HalfAdder halfAdder = buildFrom(a, b, gates);
-
-            if (halfAdder.getSum() != sum) {
-                throw new IllegalStateException("Sum wire should be %s the same for a = %s and b = %s, but we found %s".formatted(sum.getName(), a.getName(), b.getName(), halfAdder.getSum()));
+            if (this.getSum() != sum) {
+                throw new IllegalStateException("Sum wire should be %s the same for a = %s and b = %s, but we found %s".formatted(sum.getName(), a.getName(), b.getName(), this.getSum()));
             }
-
-            return halfAdder;
         }
 
         public void setSum(Wire sum) {
@@ -153,7 +144,7 @@ public class ASD {
     }
 
     /**
-     * https://upload.wikimedia.org/wikipedia/commons/5/57/Fulladder.gif
+     * <a href="https://upload.wikimedia.org/wikipedia/commons/5/57/Fulladder.gif">Full Adder</a>
      */
     @Data
     public static class FullAdder {
@@ -170,22 +161,25 @@ public class ASD {
         }
 
 
-        public FullAdder buildFrom(Wire a, Wire b, Wire cin, Wire sum, List<Gate> gates) {
+        public FullAdder buildFrom(Wire a, Wire b, Supplier<Wire> getCin, Consumer<Wire> setCin, Wire sum, List<Gate> gates) {
             FullAdder fullAdder = new FullAdder();
 
             fullAdder.setA(a);
             fullAdder.setB(b);
             fullAdder.setCin(cin);
 
-            fullAdder.setHalfAdderAB(HalfAdder.buildFrom(a, b, gates));
+            Consumer<Wire> cantSet = w -> {
+                throw new IllegalStateException("Cannot set wire %s".formatted(w.getName()));
+            };
 
-            fullAdder.setHalfAdderSumCin(HalfAdder.buildFrom(fullAdder.getHalfAdderAB().getSum(), cin, gates));
+            fullAdder.setHalfAdderAB(new HalfAdder(() -> a, cantSet, () -> b, cantSet, gates));
 
-            Gate gate = Gate.findGate(
+            fullAdder.setHalfAdderSumCin(new HalfAdder(fullAdder.getHalfAdderAB()::getSum, fullAdder.getHalfAdderAB()::setSum, getCin, setCin, gates));
+
+            fullAdder.setOrGateCout((OrGate) Gate.findGate(
                     fullAdder.getHalfAdderSumCin()::getCarry, fullAdder.getHalfAdderSumCin()::setCarry,
                     fullAdder.getHalfAdderAB()::getCarry, fullAdder.getHalfAdderAB()::setCarry,
-                    OrGate.class, gates);
-            fullAdder.setOrGateCout((OrGate) gate);
+                    OrGate.class, gates));
 
             if (fullAdder.getSum() != sum) {
                 gates.stream().filter(g -> g.getOutput() == sum)
@@ -219,7 +213,7 @@ public class ASD {
     public static class Wire {
 
         private final String name;
-        private Optional<Boolean> value = Optional.empty();
+        private Long value;
 
         private final List<ConnectedWireListener> connectedWireListeners = new ArrayList<>();
 
@@ -231,22 +225,17 @@ public class ASD {
             connectedWireListeners.add(connectedWireListener);
         }
 
-        public void removeConnectedWireListener(ConnectedWireListener connectedWireListener) {
-            connectedWireListeners.remove(connectedWireListener);
+        public void connect(Long value) {
+            this.value = value;
+            getConnectedWireListeners().forEach(connectedWireListener -> connectedWireListener.onConnected(this));
         }
 
-        public void connect(boolean value) {
-            this.value = Optional.of(value);
-            List<ConnectedWireListener> connectedWireListeners = getConnectedWireListeners().stream().toList();
-            connectedWireListeners.forEach(connectedWireListener -> connectedWireListener.onConnected(this));
-        }
-
-        public boolean getValue() {
-            return this.value.orElseThrow(() -> new IllegalStateException("Wire is not connected"));
+        public long getValue() {
+            return Optional.ofNullable(value).orElseThrow(() -> new IllegalStateException("Wire is not connected"));
         }
 
         public boolean isConnected() {
-            return this.value.isPresent();
+            return value != null;
         }
     }
 
@@ -257,22 +246,23 @@ public class ASD {
         private final Wire right;
         private Wire output;
 
+        private final List<OutputFixListener> outputFixListeners = new ArrayList<>();
+
         public Gate(Wire left, Wire right, Wire output) {
             this.left = left;
             this.right = right;
             this.output = output;
 
-            if (!left.isConnected()) {
-                left.addConnectedWireListener(this);
-            }
-
-            if (!right.isConnected()) {
-                right.addConnectedWireListener(this);
-            }
+            left.addConnectedWireListener(this);
+            right.addConnectedWireListener(this);
 
             if (left.isConnected() && right.isConnected()) {
                 output.connect(this.evaluate(left.getValue(), right.getValue()));
             }
+        }
+
+        public void addOutputFixListener(OutputFixListener outputFixListener) {
+            outputFixListeners.add(outputFixListener);
         }
 
         public boolean isConnected(Wire... wire) {
@@ -280,8 +270,7 @@ public class ASD {
         }
 
         public void setOutput(Wire output) {
-            Root.switchedWires.add(this.output);
-            Root.switchedWires.add(output);
+            this.getOutputFixListeners().forEach(outputFixListener -> outputFixListener.onOutputFix(this.output, output));
 
             this.output = output;
 
@@ -292,15 +281,31 @@ public class ASD {
 
         @Override
         public void onConnected(Wire wire) {
-            wire.removeConnectedWireListener(this);
             if (left.isConnected() && right.isConnected()) {
                 output.connect(this.evaluate(left.getValue(), right.getValue()));
             }
         }
 
-        protected abstract boolean evaluate(boolean left, boolean right);
+        protected abstract long evaluate(Long left, Long right);
 
-        public static Supplier<Boolean> fixGate(Wire current, Wire missing, Consumer<Wire> replaceWire, Class<? extends  Gate> clazz, List<Gate> gates) {
+        public static Gate findGate(Supplier<Wire> getA, Consumer<Wire> setA, Supplier<Wire> getB, Consumer<Wire> setB, Class<? extends Gate> clazz, List<Gate> gates) {
+            try {
+                return gates.stream().filter(clazz::isInstance)
+                        .filter(g -> g.isConnected(getA.get(), getB.get()))
+                        .findAny().orElseThrow(() -> new IllegalStateException("Gate %s not found for a = %s and b = %s".formatted(clazz.getName(), getA.get().getName(), getB.get().getName())));
+            } catch (IllegalStateException e) {
+                Stream.of(
+                        fixGate(getA.get(), getB.get(), setB, clazz, gates),
+                        fixGate(getB.get(), getA.get(), setA, clazz, gates)
+                ).filter(Supplier::get).findAny().orElseThrow(() -> e);
+
+                return gates.stream().filter(clazz::isInstance)
+                        .filter(g -> g.isConnected(getA.get(), getB.get()))
+                        .findAny().orElseThrow(() -> new IllegalStateException("Gate %s not found for a = %s and b = %s".formatted(clazz.getName(), getA.get().getName(), getB.get().getName())));
+            }
+        }
+
+        public static Supplier<Boolean> fixGate(Wire current, Wire missing, Consumer<Wire> replaceWire, Class<? extends Gate> clazz, List<Gate> gates) {
             return () -> {
                 Optional<? extends Gate> replaceGate = gates.stream().filter(clazz::isInstance)
                         .map(clazz::cast)
@@ -308,10 +313,9 @@ public class ASD {
                         .findAny();
 
                 replaceGate.ifPresent(g -> {
-
                     if (g.getLeft() == current) {
                         gates.stream().filter(gate -> gate.getOutput() == g.getRight())
-                                .findAny().ifPresent(gate -> gate.setOutput(missing));
+                                .forEach(gate -> gate.setOutput(missing));
 
                         replaceWire.accept(g.getRight());
                     } else if (g.getRight() == current) {
@@ -325,24 +329,6 @@ public class ASD {
                 return replaceGate.isPresent();
             };
         }
-
-        public static Gate findGate(Supplier<Wire> getA, Consumer<Wire> setA, Supplier<Wire> getB, Consumer<Wire> setB, Class<? extends Gate> clazz, List<Gate> gates) {
-
-            try {
-                return gates.stream().filter(clazz::isInstance)
-                        .filter(g -> g.isConnected(getA.get(), getB.get()))
-                        .findAny().orElseThrow(() -> new IllegalStateException("OrGate not found for a = %s and b = %s".formatted(getA.get().getName(), getB.get().getName())));
-            } catch (IllegalStateException e) {
-                Stream.of(
-                        fixGate(getA.get(), getB.get(), setB, clazz, gates),
-                        fixGate(getB.get(), getA.get(), setA, clazz, gates)
-                ).filter(Supplier::get).findAny().orElseThrow(() -> e);
-
-                return gates.stream().filter(clazz::isInstance)
-                        .filter(g -> g.isConnected(getA.get(), getB.get()))
-                        .findAny().orElseThrow(() -> new IllegalStateException("OrGate not found for a = %s and b = %s".formatted(getA.get().getName(), getB.get().getName())));
-            }
-        }
     }
 
     public static class AndGate extends Gate {
@@ -352,8 +338,8 @@ public class ASD {
         }
 
         @Override
-        protected boolean evaluate(boolean left, boolean right) {
-            return left && right;
+        protected long evaluate(Long left, Long right) {
+            return left & right;
         }
     }
 
@@ -364,8 +350,8 @@ public class ASD {
         }
 
         @Override
-        protected boolean evaluate(boolean left, boolean right) {
-            return left || right;
+        protected long evaluate(Long left, Long right) {
+            return left | right;
         }
     }
 
@@ -376,15 +362,16 @@ public class ASD {
         }
 
         @Override
-        protected boolean evaluate(boolean left, boolean right) {
+        protected long evaluate(Long left, Long right) {
             return left ^ right;
         }
     }
 
     public interface ConnectedWireListener {
-
         void onConnected(Wire wire);
-
     }
 
+    public interface OutputFixListener {
+        void onOutputFix(Wire oldOutput, Wire newOutput);
+    }
 }
