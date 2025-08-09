@@ -45,8 +45,6 @@ public class ASD {
 
             LinkedList<Integer> conditionRecords = Stream.generate(() -> new LinkedList<>(this.conditions)).limit(5).flatMap(LinkedList::stream).collect(Collectors.toCollection(LinkedList::new));
 
-            System.out.println(springs + " " + Arrays.toString(conditionRecords.toArray()));
-
             return countArrangements(springs, null, conditionRecords);
         }
 
