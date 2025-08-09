@@ -19,12 +19,12 @@ root returns [ASD.Root out]
     }
     ;
 
-springs returns [LinkedList<ASD.Spring> out]
+springs returns [String out]
     @init {
-        $out = new LinkedList<>();
+        $out = "";
     }
     : (spring {
-        $out.add($spring.out);
+        $out += $spring.out;
     })+
     ;
 
@@ -44,15 +44,15 @@ condition_record returns [Integer out]
     ;
 
 
-spring returns [ASD.Spring out]
+spring returns [String out]
     : DAMAGED_SPRING {
-        $out = ASD.Spring.DAMAGED;
+        $out = ASD.DAMAGED;
     }
     | OPERATIONAL_SPRING {
-        $out = ASD.Spring.OPERATIONAL;
+        $out = ASD.OPERATIONAL;
     }
     | UNKNOWN_SPRING {
-        $out = ASD.Spring.UNKNOWN;
+        $out = ASD.UNKNOWN;
     }
     ;
 

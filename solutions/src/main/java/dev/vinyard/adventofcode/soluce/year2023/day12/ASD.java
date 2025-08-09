@@ -1,105 +1,101 @@
 package dev.vinyard.adventofcode.soluce.year2023.day12;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.function.ToLongFunction;
+import lombok.Getter;
+
+import java.util.*;
+import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class ASD {
 
+    public static final String DAMAGED = "#";
+    public static final String OPERATIONAL = ".";
+    public static final String UNKNOWN = "?";
+
+    @Getter
     public static class Root {
 
-        private List<Line> lines;
+        private final List<Line> lines;
 
         public Root(List<Line> lines) {
             this.lines = lines;
         }
 
-        public List<Line> getLines() {
-            return lines;
-        }
-
     }
 
+    @Getter
     public static class Line {
 
-        private LinkedList<Spring> springs;
-        private LinkedList<Integer> conditions;
+        private final String springs;
+        private final LinkedList<Integer> conditions;
+        private final Map<String, Long> memo = new HashMap<>();
 
-        public Line(LinkedList<Spring> springs, LinkedList<Integer> conditionRecords) {
+        public Line(String springs, LinkedList<Integer> conditionRecords) {
             this.springs = springs;
             this.conditions = conditionRecords;
         }
 
-        public long canFillConditionRecords() {
-            return canFillConditionRecords(new LinkedList<>(springs), null, new LinkedList<>(conditions));
+        public long countArrangementsPart1() {
+            return countArrangements(springs, null, new LinkedList<>(conditions));
         }
 
-        public long canFillConditionRecordsPart2() {
-            LinkedList<Spring> springs = Stream.generate(() -> {
-                LinkedList<Spring> springsCopy = new LinkedList<>(this.springs);
-                springsCopy.addLast(Spring.UNKNOWN);
-                return springsCopy;
-            }).limit(5).flatMap(LinkedList::stream).collect(Collectors.toCollection(LinkedList::new));
+        public long countArrangementsPart2() {
+            String springs = Stream.generate(this::getSprings).limit(5).collect(Collectors.joining(UNKNOWN));
 
             LinkedList<Integer> conditionRecords = Stream.generate(() -> new LinkedList<>(this.conditions)).limit(5).flatMap(LinkedList::stream).collect(Collectors.toCollection(LinkedList::new));
 
-            return canFillConditionRecords(springs, null, conditionRecords);
+            System.out.println(springs + " " + Arrays.toString(conditionRecords.toArray()));
+
+            return countArrangements(springs, null, conditionRecords);
         }
 
-        private long canFillConditionRecords(LinkedList<Spring> springs, Integer condition, LinkedList<Integer> conditionRecords) {
+        private long countArrangements(final String springs, final Integer condition, final LinkedList<Integer> conditionRecords) {
+            final String key = Stream.of(springs, condition, conditionRecords)
+                    .map(Objects::toString)
+                    .collect(Collectors.joining(";"));
+
+            if (memo.containsKey(key))
+                return memo.get(key);
+
             if (conditionRecords.isEmpty() && springs.isEmpty() && (condition == null || condition == 0))
                 return 1;
 
             if (springs.isEmpty())
                 return 0;
 
-            Spring spring = springs.pop();
+            String spring = springs.substring(0, 1);
 
-            ToLongFunction<Integer> canFillDamaged = v -> {
-                LinkedList<Integer> conditionRecordsCopy = new LinkedList<>(conditionRecords);
-                if (v == null) {
-                    if (conditionRecordsCopy.isEmpty())
-                        return 0;
-                    v = conditionRecordsCopy.pop();
-                }
-                if (v == 0) return 0;
+            LongSupplier canFillDamaged = () -> {
+                try {
+                    LinkedList<Integer> conditionRecordsCopy = new LinkedList<>(conditionRecords);
 
-                return canFillConditionRecords(new LinkedList<>(springs), --v, new LinkedList<>(conditionRecordsCopy));
-            };
+                    Integer newValue = Optional.ofNullable(condition).orElseGet(conditionRecordsCopy::pop);
 
-            ToLongFunction<Integer> canFillOperational = v -> {
-                if (v != null && v != 0) return 0;
+                    if (newValue == 0) return 0;
 
-                return canFillConditionRecords(new LinkedList<>(springs), null, new LinkedList<>(conditionRecords));
-            };
-
-            return switch (spring) {
-                case DAMAGED -> canFillDamaged.applyAsLong(condition);
-                case OPERATIONAL -> canFillOperational.applyAsLong(condition);
-                case UNKNOWN -> {
-                    if (condition == null)
-                        yield canFillDamaged.applyAsLong(condition) + canFillOperational.applyAsLong(condition);
-                    if (condition == 0)
-                        yield canFillOperational.applyAsLong(condition);
-                    else
-                        yield canFillDamaged.applyAsLong(condition);
+                    return countArrangements(springs.substring(1), --newValue, new LinkedList<>(conditionRecordsCopy));
+                } catch (NoSuchElementException e) {
+                    return 0;
                 }
             };
-        }
-    }
 
+            LongSupplier canFillOperational = () -> {
+                if (condition != null && condition != 0) return 0;
 
-    public static enum Spring {
-        DAMAGED("#"),
-        OPERATIONAL("."),
-        UNKNOWN("?");
+                return countArrangements(springs.substring(1), null, new LinkedList<>(conditionRecords));
+            };
 
-        private final String symbol;
+            long value = switch (spring) {
+                case DAMAGED -> canFillDamaged.getAsLong();
+                case OPERATIONAL -> canFillOperational.getAsLong();
+                case UNKNOWN -> canFillDamaged.getAsLong() + canFillOperational.getAsLong();
+                default -> throw new IllegalStateException("Unexpected value: " + spring);
+            };
 
-        Spring(String symbol) {
-            this.symbol = symbol;
+            memo.put(key, value);
+
+            return value;
         }
     }
 }

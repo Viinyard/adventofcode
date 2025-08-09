@@ -81,6 +81,6 @@ public class Day12Part1Solution implements Solution<Long> {
 
         List<ASD.Line> lines = parser.root().out.getLines();
 
-        return lines.stream().mapToLong(ASD.Line::canFillConditionRecords).sum();
+        return lines.stream().mapToLong(ASD.Line::countArrangementsPart1).sum();
     }
 }
