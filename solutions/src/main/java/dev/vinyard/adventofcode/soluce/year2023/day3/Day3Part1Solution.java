@@ -49,18 +49,8 @@ public class Day3Part1Solution implements Solution<Long> {
 
         List<ASD.Symbol> symbols = engine.getParts().stream().filter(ASD.Symbol.class::isInstance).map(ASD.Symbol.class::cast).toList();
 
-        System.out.println("Numbers : " + numbers.size());
-        System.out.println("Symbols : " + symbols.size());
-
-        return numbers.stream().filter(n -> {
-                    List<ASD.Symbol> symbolsIntersections = symbols.stream().filter(s -> n.getRectangle().intersects(s.getSize())).toList();
-
-                    if (!symbolsIntersections.isEmpty()) {
-                        System.out.println("Number: " + n + " intersects with symbols: " + symbolsIntersections);
-                    }
-
-                    return !symbolsIntersections.isEmpty();
-                }
+        return numbers.stream().filter(n ->
+                symbols.stream().map(ASD.Symbol::getSize).anyMatch(n.getRectangle()::intersects)
         ).map(ASD.Number::getValue).mapToLong(Long::parseLong).sum();
     }
 }
