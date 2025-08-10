@@ -20,14 +20,14 @@ part returns [ASD.Part out]
 		$out = new ASD.Number($value.getCharPositionInLine(), $value.getLine(), $value.getText().length(), 1, $value.text);
 	}
 	| value=DOT {
-    $out = new ASD.Empty($value.getCharPositionInLine(), $value.getLine(), $value.getText().length(), 1, $value.text);
-  }
-  | value=GEAR {
+        $out = new ASD.Empty($value.getCharPositionInLine(), $value.getLine(), $value.getText().length(), 1, $value.text);
+    }
+    | value=GEAR {
 		$out = new ASD.Gear($value.getCharPositionInLine(), $value.getLine(), $value.getText().length(), 1, $value.text);
 	}
 	| value=SYMBOL {
-    $out = new ASD.Symbol($value.getCharPositionInLine(), $value.getLine(), $value.getText().length(), 1, $value.text);
-  }
+        $out = new ASD.Symbol($value.getCharPositionInLine(), $value.getLine(), $value.getText().length(), 1, $value.text);
+    }
 	;
 
 DOT : '.';
