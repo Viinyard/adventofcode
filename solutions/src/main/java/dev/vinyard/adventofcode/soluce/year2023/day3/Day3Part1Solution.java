@@ -6,6 +6,7 @@ import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 
+import java.awt.*;
 import java.util.List;
 
 
@@ -49,8 +50,18 @@ public class Day3Part1Solution implements Solution<Long> {
 
         List<ASD.Symbol> symbols = engine.getParts().stream().filter(ASD.Symbol.class::isInstance).map(ASD.Symbol.class::cast).toList();
 
-        return numbers.stream().filter(n ->
-                symbols.stream().map(ASD.Symbol::getSize).anyMatch(n.getRectangle()::intersects)
-        ).map(ASD.Number::getValue).peek(System.out::println).mapToLong(Long::parseLong).sum();
+        System.out.println("Numbers : " + numbers.size());
+        System.out.println("Symbols : " + symbols.size());
+
+        return numbers.stream().filter(n -> {
+                    List<Rectangle> symbolsIntersections = symbols.stream().map(ASD.Symbol::getSize).filter(n.getRectangle()::intersects).toList();
+
+                    if (!symbolsIntersections.isEmpty()) {
+                        System.out.println("Number: " + n + " intersects with symbols: " + symbolsIntersections);
+                    }
+
+                    return !symbolsIntersections.isEmpty();
+                }
+        ).map(ASD.Number::getValue).mapToLong(Long::parseLong).sum();
     }
 }

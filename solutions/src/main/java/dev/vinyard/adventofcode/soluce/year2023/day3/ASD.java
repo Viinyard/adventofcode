@@ -1,6 +1,7 @@
 package dev.vinyard.adventofcode.soluce.year2023.day3;
 
 import lombok.Data;
+import lombok.ToString;
 
 import java.awt.*;
 import java.util.List;
@@ -18,6 +19,7 @@ public class ASD {
     }
 
     @Data
+    @ToString
     public static class Part {
 
         private Rectangle size;
