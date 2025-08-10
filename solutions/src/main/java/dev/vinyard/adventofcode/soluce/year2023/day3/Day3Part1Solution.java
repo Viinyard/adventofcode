@@ -51,6 +51,6 @@ public class Day3Part1Solution implements Solution<Long> {
 
         return numbers.stream().filter(n ->
                 symbols.stream().map(ASD.Symbol::getSize).anyMatch(n.getRectangle()::intersects)
-        ).map(ASD.Number::getValue).mapToLong(Long::parseLong).sum();
+        ).map(ASD.Number::getValue).peek(System.out::println).mapToLong(Long::parseLong).sum();
     }
 }
