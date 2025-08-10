@@ -43,11 +43,10 @@ INT
 
 fragment ZERO : '0';
 
+WS
+   : [ \t\r\n]+ -> skip
+   ;
 
 SYMBOL
   : .
   ;
-
-WS
-   : [ \t\n\r]+ -> skip
-   ;
