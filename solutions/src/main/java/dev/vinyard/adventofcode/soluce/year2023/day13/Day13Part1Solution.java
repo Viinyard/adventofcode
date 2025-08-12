@@ -7,6 +7,7 @@ import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 
 import java.util.List;
+import java.util.function.Function;
 
 @AdventOfCodeSolution(year = 2023, day = 13, part = 1, description = "Point of Incidence", link = "https://adventofcode.com/2023/day/13", tags = "unsolved")
 public class Day13Part1Solution implements Solution<Long> {
@@ -76,6 +77,12 @@ public class Day13Part1Solution implements Solution<Long> {
 
         List<ASD.Pattern> patterns = parser.root().out.getPatterns();
 
-        return patterns.stream().map(ASD.Pattern::findVerticalReflectionColumns).flatMapToLong(l -> l.stream().mapToLong(Integer::longValue)).sum() + patterns.stream().map(ASD.Pattern::findHorizontalReflectionRows).flatMapToLong(l -> l.stream().mapToLong(Integer::longValue)).map(i -> i * 100).sum();
+        Function<ASD.Pattern, List<Integer>> findVerticalReflection = p -> p.findVerticalReflection(i -> i == 0);
+        Function<ASD.Pattern, List<Integer>> findHorizontalReflection = p -> p.findHorizontalReflection(i -> i == 0);
+
+        long verticalReflections = patterns.stream().map(findVerticalReflection).flatMapToLong(l -> l.stream().mapToLong(Integer::longValue)).sum();
+        long horizontalReflections = patterns.stream().map(findHorizontalReflection).flatMapToLong(l -> l.stream().mapToLong(Integer::longValue)).map(i -> i * 100).sum();
+
+        return verticalReflections + horizontalReflections;
     }
 }
