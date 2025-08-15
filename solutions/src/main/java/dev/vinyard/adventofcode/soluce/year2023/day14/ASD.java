@@ -5,10 +5,10 @@ import lombok.Setter;
 
 import java.awt.*;
 import java.awt.geom.AffineTransform;
-import java.util.Arrays;
+import java.util.*;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class ASD {
 
@@ -30,6 +30,8 @@ public class ASD {
         private Rectangle bounds;
         private Entity[][] grid;
         private List<RoundedRock> roundedRocks;
+        private List<Direction> directions = Arrays.asList(Direction.NORTH, Direction.WEST, Direction.SOUTH, Direction.EAST);
+
 
         public Platform(List<Entity> entities, Rectangle bounds) {
             this.entities = entities;
@@ -42,6 +44,37 @@ public class ASD {
 
         public long tilt() {
             this.roundedRocks.forEach(e -> e.moveTo(Direction.NORTH));
+            return this.calculateScore();
+        }
+
+        public long getRemainingIterationsAfterLoop(long totalIterations) {
+            Map<Platform, Long> hash = new HashMap<>();
+
+            long currentIteration = 0;
+            while (currentIteration < totalIterations) {
+                currentIteration++;
+                directions.forEach(direction -> this.roundedRocks.forEach(rock -> rock.moveTo(direction)));
+
+                Long cycle = hash.put(this, currentIteration);
+                if (cycle != null)
+                    return (totalIterations - currentIteration) % (currentIteration - cycle);
+            }
+
+            throw new RuntimeException("No cycle detected after 1_000_000_000 iterations.");
+        }
+
+        public long tiltCycle(long totalIterations) {
+            long remainingIterations = this.getRemainingIterationsAfterLoop(totalIterations);
+
+            Stream.generate(() -> directions)
+                    .limit(remainingIterations)
+                    .flatMap(List::stream)
+                    .forEach(direction -> this.roundedRocks.forEach(rock -> rock.moveTo(direction)));
+
+            return this.calculateScore();
+        }
+
+        private long calculateScore() {
             return this.roundedRocks.stream().mapToLong(e -> (long) e.position.distance(e.position.x, this.bounds.height)).sum();
         }
 
@@ -52,6 +85,16 @@ public class ASD {
         @Override
         public String toString() {
             return Arrays.stream(grid).map(row -> Arrays.stream(row).map(Entity::toString).collect(Collectors.joining())).collect(Collectors.joining("\n"));
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return o instanceof Platform platform && Arrays.deepEquals(this.grid, platform.grid);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(Arrays.deepHashCode(grid));
         }
     }
 
@@ -77,6 +120,11 @@ public class ASD {
 
         public void moveTo(Direction direction) {
             while (this.move(direction));
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(position) + 31 * this.toString().hashCode();
         }
     }
 
@@ -108,6 +156,14 @@ public class ASD {
         public String toString() {
             return "O";
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o instanceof RoundedRock roundedRock) return Objects.equals(this.position, roundedRock.position);
+
+            return false;
+        }
     }
 
     public static class CubeShapedRock extends Entity {
@@ -120,6 +176,14 @@ public class ASD {
         public String toString() {
             return "#";
         }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) return true;
+            if (obj instanceof CubeShapedRock cubeShapedRock) return Objects.equals(this.position, cubeShapedRock.position);
+
+            return false;
+        }
     }
 
     public static class EmptySpace extends Entity {
@@ -131,6 +195,14 @@ public class ASD {
         @Override
         public String toString() {
             return ".";
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) return true;
+            if (obj instanceof EmptySpace emptySpace) return Objects.equals(this.position, emptySpace.position);
+
+            return false;
         }
     }
 
