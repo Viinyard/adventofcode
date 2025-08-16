@@ -27,7 +27,7 @@ jobs:
       - name: Build with Maven
         run: |
           mvn clean install
-          mvn -pl solutions blueprinter:blueprint@readme -Xss16m
+          mvn -pl solutions blueprinter:blueprint@readme -DargLine="-Xss16m"
 
       - uses: stefanzweifel/git-auto-commit-action@v5
         with:
