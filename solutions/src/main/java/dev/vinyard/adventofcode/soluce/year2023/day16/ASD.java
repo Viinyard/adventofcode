@@ -30,14 +30,14 @@ public class ASD {
         public long getEngergizedCount() {
             BeamVisitor beamVisitor = new BeamVisitor(this);
 
-            beamVisitor.visit(new Point(0, 0), Direction.EAST);
+            beamVisitor.visit(new Beam(new Point(0, 0), Direction.EAST));
 
             return beamVisitor.getEnergizedTilesCount();
         }
 
-        private long getEngergizedCountFrom(Point position, Direction direction) {
+        private long getEngergizedCountFrom(Beam beam) {
             BeamVisitor beamVisitor = new BeamVisitor(this);
-            beamVisitor.visit(position, direction);
+            beamVisitor.visit(beam);
             return beamVisitor.getEnergizedTilesCount();
         }
 
@@ -54,7 +54,7 @@ public class ASD {
                             c.accept(new Beam(p, Direction.SOUTH)); // Top edge
                     })
                     .map(Beam.class::cast)
-                    .mapToLong(beam -> getEngergizedCountFrom(beam.position, beam.direction))
+                    .mapToLong(this::getEngergizedCountFrom)
                     .max().orElse(0L);
         }
 
@@ -67,7 +67,7 @@ public class ASD {
 
     public interface TileVisitor {
 
-        void visit(Point position, Direction direction);
+        void visit(Beam beam);
 
     }
 
@@ -75,15 +75,15 @@ public class ASD {
 
     public static class BeamVisitor implements TileVisitor {
         private final Root root;
-        private Set<Beam> beams = new HashSet<>();
+        private final Set<Beam> beams = new HashSet<>();
 
         public BeamVisitor(Root root) {
             this.root = root;
         }
 
         @Override
-        public void visit(Point position, Direction direction) {
-            this.root.getTileAt(position).filter(e -> beams.add(new Beam(e.position, direction))).ifPresent(tile -> tile.accept(this, direction));
+        public void visit(Beam beam) {
+            this.root.getTileAt(beam.position).filter(e -> beams.add(beam)).ifPresent(tile -> tile.accept(this, beam.direction));
         }
 
         public long getEnergizedTilesCount() {
@@ -98,6 +98,10 @@ public class ASD {
 
         public Tile(Point position) {
             this.position = position;
+        }
+
+        protected Beam getBeam(Direction direction) {
+            return new Beam(direction.move(this.position), direction);
         }
 
         @Override
@@ -120,7 +124,7 @@ public class ASD {
 
         @Override
         public void accept(TileVisitor visitor, Direction direction) {
-            visitor.visit(direction.move(this.position), direction);
+            visitor.visit(getBeam(direction));
         }
     }
 
@@ -136,14 +140,12 @@ public class ASD {
 
         @Override
         public void accept(TileVisitor visitor, Direction direction) {
-            Direction newDirection = switch (direction) {
+            visitor.visit(getBeam(switch (direction) {
                 case NORTH -> Direction.WEST;
                 case SOUTH -> Direction.EAST;
                 case EAST -> Direction.SOUTH;
                 case WEST -> Direction.NORTH;
-            };
-
-            visitor.visit(newDirection.move(this.position), newDirection);
+            }));
         }
     }
 
@@ -159,14 +161,12 @@ public class ASD {
 
         @Override
         public void accept(TileVisitor visitor, Direction direction) {
-            Direction newDirection = switch (direction) {
+            visitor.visit(getBeam(switch (direction) {
                 case NORTH -> Direction.EAST;
                 case SOUTH -> Direction.WEST;
                 case EAST -> Direction.NORTH;
                 case WEST -> Direction.SOUTH;
-            };
-
-            visitor.visit(newDirection.move(this.position), newDirection);
+            }));
         }
     }
 
@@ -184,11 +184,11 @@ public class ASD {
         public void accept(TileVisitor visitor, Direction direction) {
             switch (direction) {
                 case EAST, WEST -> {
-                    visitor.visit(Direction.NORTH.move(this.position), Direction.NORTH);
-                    visitor.visit(Direction.SOUTH.move(this.position), Direction.SOUTH);
+                    visitor.visit(getBeam(Direction.NORTH));
+                    visitor.visit(getBeam(Direction.SOUTH));
                 }
-                case NORTH -> visitor.visit(Direction.NORTH.move(this.position), Direction.NORTH);
-                case SOUTH ->  visitor.visit(Direction.SOUTH.move(this.position), Direction.SOUTH);
+                case NORTH -> visitor.visit(getBeam(Direction.NORTH));
+                case SOUTH ->  visitor.visit(getBeam(Direction.SOUTH));
             }
         }
 
@@ -209,11 +209,11 @@ public class ASD {
         public void accept(TileVisitor visitor, Direction direction) {
             switch (direction) {
                 case NORTH, SOUTH -> {
-                    visitor.visit(Direction.EAST.move(this.position), Direction.EAST);
-                    visitor.visit(Direction.WEST.move(this.position), Direction.WEST);
+                    visitor.visit(getBeam(Direction.EAST));
+                    visitor.visit(getBeam(Direction.WEST));
                 }
-                case EAST -> visitor.visit(Direction.EAST.move(this.position), Direction.EAST);
-                case WEST -> visitor.visit(Direction.WEST.move(this.position), Direction.WEST);
+                case EAST -> visitor.visit(getBeam(Direction.EAST));
+                case WEST -> visitor.visit(getBeam(Direction.WEST));
             }
         }
     }
