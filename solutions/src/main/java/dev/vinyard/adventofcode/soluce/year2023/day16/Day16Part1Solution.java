@@ -75,8 +75,6 @@ public class Day16Part1Solution implements Solution<Long> {
 
         ASD.Root root = parser.root().out;
 
-        System.out.println(root);
-
         return root.getEngergizedCount();
     }
 }

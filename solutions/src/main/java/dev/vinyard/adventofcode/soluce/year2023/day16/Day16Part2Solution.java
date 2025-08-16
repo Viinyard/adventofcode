@@ -51,8 +51,6 @@ public class Day16Part2Solution implements Solution<Long> {
 
         ASD.Root root = parser.root().out;
 
-        System.out.println(root);
-
         return root.getMaxEnergizedCount();
     }
 }
