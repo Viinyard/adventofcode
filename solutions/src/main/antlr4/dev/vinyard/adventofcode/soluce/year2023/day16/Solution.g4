@@ -15,7 +15,7 @@ root returns [ASD.Root out]
     }
     ;
 
-lines returns [List<ASD.Entity> out, int x, int y]
+lines returns [List<ASD.Tile> out, int x, int y]
     @init {
         $y = 0;
         $out = new ArrayList<>();
@@ -25,14 +25,14 @@ lines returns [List<ASD.Entity> out, int x, int y]
     })+ EOF
     ;
 
-line [List<ASD.Entity> entities, int y] returns [int x]
+line [List<ASD.Tile> tiles, int y] returns [int x]
     @init {
         $x = 0;
     }
-    : (entity[$x++, $y] { $entities.add($entity.out); })+ NEWLINE?
+    : (tile[$x++, $y] { $tiles.add($tile.out); })+ NEWLINE?
     ;
 
-entity [int x, int y] returns [ASD.Entity out]
+tile [int x, int y] returns [ASD.Tile out]
     : EMPTY_SPACE {
         $out = new ASD.EmptySpace(new Point(x, y));
     }

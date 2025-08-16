@@ -12,18 +12,18 @@ public class ASD {
 
     public static class Root {
 
-        public final List<Entity> entities;
-        public final Entity[][] grid;
+        public final List<Tile> tiles;
+        public final Tile[][] grid;
         public final Rectangle bounds;
 
-        public Root(List<Entity> entities, Dimension dimension) {
-            this.entities = entities;
+        public Root(List<Tile> tiles, Dimension dimension) {
+            this.tiles = tiles;
             this.bounds = new Rectangle(dimension);
-            this.grid = new Entity[this.bounds.height][this.bounds.width];
-            this.entities.forEach(entity -> grid[entity.position.y][entity.position.x] = entity);
+            this.grid = new Tile[this.bounds.height][this.bounds.width];
+            this.tiles.forEach(tile -> grid[tile.position.y][tile.position.x] = tile);
         }
 
-        public Optional<Entity> getEntityAt(Point position) {
+        public Optional<Tile> getTileAt(Point position) {
             return Optional.of(position).filter(this.bounds::contains).map(p -> grid[p.y][p.x]);
         }
 
@@ -32,24 +32,24 @@ public class ASD {
 
             beamVisitor.visit(new Point(0, 0), Direction.EAST);
 
-            return beamVisitor.getEnergizedEntitiesCount();
+            return beamVisitor.getEnergizedTilesCount();
         }
 
         @Override
         public String toString() {
-            return Arrays.stream(grid).map(row -> Arrays.stream(row).map(Entity::toString).collect(Collectors.joining())).collect(Collectors.joining("\n"));
+            return Arrays.stream(grid).map(row -> Arrays.stream(row).map(Tile::toString).collect(Collectors.joining())).collect(Collectors.joining("\n"));
         }
     }
 
-    public interface EntityVisitor {
+    public interface TileVisitor {
 
         void visit(Point position, Direction direction);
 
     }
 
-    public static class BeamVisitor implements EntityVisitor {
+    public static class BeamVisitor implements TileVisitor {
 
-        public record Beam(Entity entity, Direction direction) {}
+        public record Beam(Tile tile, Direction direction) {}
 
         private final Root root;
         private Set<Beam> beams = new HashSet<>();
@@ -60,58 +60,30 @@ public class ASD {
 
         @Override
         public void visit(Point position, Direction direction) {
-            this.root.getEntityAt(position).filter(e -> beams.add(new Beam(e, direction))).ifPresent(entity -> entity.accept(this, direction));
+            this.root.getTileAt(position).filter(e -> beams.add(new Beam(e, direction))).ifPresent(tile -> tile.accept(this, direction));
         }
 
-        public long getEnergizedEntitiesCount() {
-            System.out.println();
-            System.out.println(this);
-            System.out.println();
-            return beams.stream().map(Beam::entity).distinct().count();
-        }
-
-        @Override
-        public String toString() {
-            String[][] gridToPrint = new String[this.root.bounds.width][this.root.bounds.height];
-
-            this.root.entities.forEach(entity -> gridToPrint[entity.position.y][entity.position.x] = entity.toString());
-            beams.forEach(e -> {
-                switch (gridToPrint[e.entity.position.y][e.entity.position.x]) {
-                    case "." -> gridToPrint[e.entity.position.y][e.entity.position.x] = switch (e.direction) {
-                        case NORTH -> "^";
-                        case SOUTH -> "v";
-                        case EAST -> ">";
-                        case WEST -> "<";
-                    };
-                    case ">", "<", "v", "^" -> gridToPrint[e.entity.position.y][e.entity.position.x] = "2";
-                    case "2" -> gridToPrint[e.entity.position.y][e.entity.position.x] = "3";
-                    case "3" -> gridToPrint[e.entity.position.y][e.entity.position.x] = "4";
-                    default -> {
-                        // Do nothing, already energized
-                    }
-                }
-            });
-
-            return Arrays.stream(gridToPrint).map(row -> String.join("", row)).collect(Collectors.joining("\n"));
+        public long getEnergizedTilesCount() {
+            return beams.stream().map(Beam::tile).distinct().count();
         }
     }
 
     @Getter
-    public static abstract class Entity {
+    public static abstract class Tile {
 
         protected final Point position;
 
-        public Entity(Point position) {
+        public Tile(Point position) {
             this.position = position;
         }
 
         @Override
         public abstract String toString();
 
-        public abstract void accept(EntityVisitor visitor, Direction direction);
+        public abstract void accept(TileVisitor visitor, Direction direction);
     }
 
-    public static class EmptySpace extends Entity {
+    public static class EmptySpace extends Tile {
 
 
         public EmptySpace(Point position) {
@@ -124,12 +96,12 @@ public class ASD {
         }
 
         @Override
-        public void accept(EntityVisitor visitor, Direction direction) {
+        public void accept(TileVisitor visitor, Direction direction) {
             visitor.visit(direction.move(this.position), direction);
         }
     }
 
-    public static class PositiveMirror extends Entity {
+    public static class PositiveMirror extends Tile {
         public PositiveMirror(Point position) {
             super(position);
         }
@@ -140,7 +112,7 @@ public class ASD {
         }
 
         @Override
-        public void accept(EntityVisitor visitor, Direction direction) {
+        public void accept(TileVisitor visitor, Direction direction) {
             Direction newDirection = switch (direction) {
                 case NORTH -> Direction.WEST;
                 case SOUTH -> Direction.EAST;
@@ -152,7 +124,7 @@ public class ASD {
         }
     }
 
-    public static class NegativeMirror extends Entity {
+    public static class NegativeMirror extends Tile {
         public NegativeMirror(Point position) {
             super(position);
         }
@@ -163,7 +135,7 @@ public class ASD {
         }
 
         @Override
-        public void accept(EntityVisitor visitor, Direction direction) {
+        public void accept(TileVisitor visitor, Direction direction) {
             Direction newDirection = switch (direction) {
                 case NORTH -> Direction.EAST;
                 case SOUTH -> Direction.WEST;
@@ -175,7 +147,7 @@ public class ASD {
         }
     }
 
-    public static class VerticalSplitter extends Entity {
+    public static class VerticalSplitter extends Tile {
         public VerticalSplitter(Point position) {
             super(position);
         }
@@ -186,7 +158,7 @@ public class ASD {
         }
 
         @Override
-        public void accept(EntityVisitor visitor, Direction direction) {
+        public void accept(TileVisitor visitor, Direction direction) {
             switch (direction) {
                 case EAST, WEST -> {
                     visitor.visit(Direction.NORTH.move(this.position), Direction.NORTH);
@@ -200,7 +172,7 @@ public class ASD {
 
     }
 
-    public static class HorizontalSplitter extends Entity {
+    public static class HorizontalSplitter extends Tile {
         public HorizontalSplitter(Point position) {
             super(position);
         }
@@ -211,7 +183,7 @@ public class ASD {
         }
 
         @Override
-        public void accept(EntityVisitor visitor, Direction direction) {
+        public void accept(TileVisitor visitor, Direction direction) {
             switch (direction) {
                 case NORTH, SOUTH -> {
                     visitor.visit(Direction.EAST.move(this.position), Direction.EAST);
@@ -241,6 +213,4 @@ public class ASD {
             return (Point) affineTransform.transform(point, new Point());
         }
     }
-
-
 }
