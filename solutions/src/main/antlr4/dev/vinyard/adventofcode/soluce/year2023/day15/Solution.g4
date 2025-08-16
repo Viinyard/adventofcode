@@ -34,10 +34,10 @@ COMMA
     : ','
     ;
 
-ASCII_CHAR
-    : .
-    ;
-
 WS
     : [ \t\n\r]+ -> skip
+    ;
+
+ASCII_CHAR
+    : .
     ;
