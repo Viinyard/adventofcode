@@ -9,24 +9,29 @@ options {
 }
 
 root returns [ASD.Root out]
-    @init {
-        List<ASD.Word> words = new ArrayList<>();
-    }
-    : (word {
-        words.add($word.out);
-    })* EOF {
-        $out = new ASD.Root(words);
+    : instructions EOF {
+        $out = new ASD.Root($instructions.out);
     }
     ;
 
-word returns [ASD.Word out]
+instructions returns [List<ASD.Instruction> out]
+    @init {
+        $out = new ArrayList<>();
+    }
+    : (instruction {
+        $out.add($instruction.out);
+    } COMMA?)+
+    ;
+
+instruction returns [ASD.Instruction out]
     @init {
         StringBuilder sb = new StringBuilder();
     }
-    : (ASCII_CHAR {
-        sb.append($ASCII_CHAR.text);
-    })+ COMMA? {
-        $out = new ASD.Word(sb.toString());
+    : (LABEL { sb.append($LABEL.text); } )+ DASH {
+        $out = new ASD.DashInstruction(sb.toString());
+    }
+    | (LABEL { sb.append($LABEL.text); } )+ EQUALS_SIGN FOCAL_LENGTH {
+        $out = new ASD.FocalLengthInstruction(sb.toString(), Integer.parseInt($FOCAL_LENGTH.text));
     }
     ;
 
@@ -34,10 +39,23 @@ COMMA
     : ','
     ;
 
+FOCAL_LENGTH
+   // integer part forbis leading 0s (e.g. `01`)
+   : [0-9]
+   ;
+
+EQUALS_SIGN
+    : '='
+    ;
+
+DASH
+    : '-'
+    ;
+
 WS
     : [ \t\n\r]+ -> skip
     ;
 
-ASCII_CHAR
+LABEL
     : .
     ;
