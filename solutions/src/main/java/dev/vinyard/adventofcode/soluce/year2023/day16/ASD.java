@@ -35,6 +35,30 @@ public class ASD {
             return beamVisitor.getEnergizedTilesCount();
         }
 
+        private long getEngergizedCountFrom(Point position, Direction direction) {
+            BeamVisitor beamVisitor = new BeamVisitor(this);
+            beamVisitor.visit(position, direction);
+            return beamVisitor.getEnergizedTilesCount();
+        }
+
+        public long getMaxEnergizedCount() {
+            return this.tiles.stream().map(Tile::getPosition).filter(p -> p.x == 0 || p.x == bounds.width - 1 || p.y == 0 || p.y == bounds.height - 1)
+                    .mapMulti((p, c) -> {
+                        if (p.x == bounds.width - 1)
+                            c.accept(new Beam(p, Direction.WEST)); // Right edge
+                        if (p.x == 0)
+                            c.accept(new Beam(p, Direction.EAST)); // Left
+                        if (p.y == bounds.height - 1)
+                            c.accept(new Beam(p, Direction.NORTH)); // Bottom edge
+                        if (p.y == 0)
+                            c.accept(new Beam(p, Direction.SOUTH)); // Top edge
+                    })
+                    .map(Beam.class::cast)
+                    .mapToLong(beam -> getEngergizedCountFrom(beam.position, beam.direction))
+                    .max().orElse(0L);
+        }
+
+
         @Override
         public String toString() {
             return Arrays.stream(grid).map(row -> Arrays.stream(row).map(Tile::toString).collect(Collectors.joining())).collect(Collectors.joining("\n"));
@@ -47,10 +71,9 @@ public class ASD {
 
     }
 
+    public record Beam(Point position, Direction direction) {}
+
     public static class BeamVisitor implements TileVisitor {
-
-        public record Beam(Tile tile, Direction direction) {}
-
         private final Root root;
         private Set<Beam> beams = new HashSet<>();
 
@@ -60,11 +83,11 @@ public class ASD {
 
         @Override
         public void visit(Point position, Direction direction) {
-            this.root.getTileAt(position).filter(e -> beams.add(new Beam(e, direction))).ifPresent(tile -> tile.accept(this, direction));
+            this.root.getTileAt(position).filter(e -> beams.add(new Beam(e.position, direction))).ifPresent(tile -> tile.accept(this, direction));
         }
 
         public long getEnergizedTilesCount() {
-            return beams.stream().map(Beam::tile).distinct().count();
+            return beams.stream().map(Beam::position).distinct().count();
         }
     }
 
