@@ -1,12 +1,20 @@
 package dev.vinyard.adventofcode.soluce.year2023.day17;
 
 import lombok.Getter;
+import org.jgrapht.Graph;
+import org.jgrapht.GraphPath;
+import org.jgrapht.alg.interfaces.ShortestPathAlgorithm;
+import org.jgrapht.alg.shortestpath.DijkstraShortestPath;
+import org.jgrapht.graph.DefaultWeightedEdge;
+import org.jgrapht.graph.builder.GraphTypeBuilder;
 
 import java.awt.*;
 import java.awt.geom.AffineTransform;
-import java.util.*;
+import java.util.Arrays;
 import java.util.List;
-import java.util.function.Function;
+import java.util.Optional;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -29,44 +37,85 @@ public class ASD {
         }
 
         public long getMinHeatLost() {
-            PriorityQueue<GraphNode> nodes = new PriorityQueue<>();
-            Map<Point, Integer> minHeatLossByPosition = new HashMap<>();
+            Graph<LayerVertex, HeatLossEdge> graph = createHeatLossGraph();
 
-            nodes.add(new GraphNode(blocks.getFirst().position));
+            LayerVertex start = new LayerVertex(this.blocks.getFirst().getPosition(), null);
+            LayerVertex dest = new LayerVertex(this.blocks.getLast().getPosition(), null);
 
-            System.out.println(this);
+            BiConsumer<LayerVertex, LayerVertex> addEdge = (s, d) -> {
+                HeatLossEdge heatLossEdge = graph.addEdge(s, d);
+                graph.setEdgeWeight(heatLossEdge, 0.0);
+            };
 
-            GraphNode dest = new GraphNode(blocks.getLast().position);
+            graph.addVertex(start);
 
-            while (!nodes.isEmpty()) {
-                GraphNode current = nodes.poll();
+            addEdge.accept(start, new LayerVertex(this.blocks.getFirst().getPosition(), Layer.HORIZONTAL));
+            addEdge.accept(start, new LayerVertex(this.blocks.getFirst().getPosition(), Layer.VERTICAL));
 
-//                System.out.println(current);
+            graph.addVertex(dest);
 
-                if (minHeatLossByPosition.containsKey(current.position) && minHeatLossByPosition.get(current.position) <= current.heatLoss)
-                    continue; // Skip if we already found a better path to this position
+            addEdge.accept(new LayerVertex(this.blocks.getLast().getPosition(), Layer.HORIZONTAL), dest);
+            addEdge.accept(new LayerVertex(this.blocks.getLast().getPosition(), Layer.VERTICAL), dest);
 
-                minHeatLossByPosition.put(current.position, current.heatLoss);
+            ShortestPathAlgorithm<LayerVertex, HeatLossEdge> dijkstra = new DijkstraShortestPath<>(graph);
 
-                if (Objects.equals(current.position, dest.position))
-                    return current.heatLoss;
+            GraphPath<LayerVertex, HeatLossEdge> path = dijkstra.getPath(start, dest);
 
-                Arrays.stream(Direction.values()).map(d -> d.move(current.position))
-                        .map(this::getBlockAt)
-                        .flatMap(Optional::stream)
-                        .mapMulti((block, consumer) -> {
-                            GraphNode graphNode = new GraphNode(block.position, current.heatLoss + block.getHeatLoss(), current);
-                            if (graphNode.isAcceptable())
-                                consumer.accept(graphNode);
-                            else {
-                                System.out.println(graphNode);
-                            }
-                        })
-                        .map(GraphNode.class::cast)
-                        .forEach(nodes::add);
-            }
+            return (long) path.getWeight();
+        }
 
-            return -1; // No path found
+
+
+        private Graph<LayerVertex, HeatLossEdge> createEmptyGraph() {
+            return GraphTypeBuilder.<LayerVertex, HeatLossEdge>directed()
+                    .allowingMultipleEdges(false)
+                    .allowingSelfLoops(false)
+                    .edgeClass(HeatLossEdge.class)
+                    .weighted(true)
+                    .buildGraph();
+        }
+
+        private Graph<LayerVertex, HeatLossEdge> createHeatLossGraph() {
+            Graph<LayerVertex, HeatLossEdge> graph = createEmptyGraph();
+
+            LayerVertex[][] verticalLayer = new LayerVertex[this.bounds.height][this.bounds.width];
+            LayerVertex[][] horizontalLayer = new LayerVertex[this.bounds.height][this.bounds.width];
+
+            this.blocks.forEach(block -> {
+                LayerVertex verticalVertex = new LayerVertex(block.position, Layer.VERTICAL);
+                verticalLayer[block.position.y][block.position.x] = verticalVertex;
+                graph.addVertex(verticalVertex);
+
+                LayerVertex horizontalVertex = new LayerVertex(block.position, Layer.HORIZONTAL);
+                horizontalLayer[block.position.y][block.position.x] = new LayerVertex(block.position, Layer.HORIZONTAL);
+                graph.addVertex(horizontalVertex);
+            });
+
+            BiFunction<Point, Direction, Stream<Point>> vertexStream = (position, direction) -> Stream.iterate(direction.move(position), this.bounds::contains, direction::move).limit(3);
+            BiFunction<Point, Direction, List<LayerVertex>> horizontalStream = vertexStream.andThen(s -> s.map(p -> horizontalLayer[p.y][p.x]).toList());
+            BiFunction<Point, Direction, List<LayerVertex>> verticalStream = vertexStream.andThen(s -> s.map(p -> verticalLayer[p.y][p.x]).toList());
+
+            BiConsumer<LayerVertex, List<LayerVertex>> addEdgesBetween = (origin, vertices) -> {
+                double heatLoss = 0;
+                for (LayerVertex v : vertices) {
+                    heatLoss += grid[v.position.y][v.position.x].getHeatLoss();
+                    HeatLossEdge heatLossEdge = graph.addEdge(origin, v);
+                    graph.setEdgeWeight(heatLossEdge, heatLoss);
+                }
+            };
+
+
+            this.blocks.forEach(block -> {
+                LayerVertex verticalVertex = verticalLayer[block.position.y][block.position.x];
+                addEdgesBetween.accept(verticalVertex, horizontalStream.apply(block.position, Direction.EAST));
+                addEdgesBetween.accept(verticalVertex, horizontalStream.apply(block.position, Direction.WEST));
+
+                LayerVertex horizontalVertex = horizontalLayer[block.position.y][block.position.x];
+                addEdgesBetween.accept(horizontalVertex, verticalStream.apply(block.position, Direction.NORTH));
+                addEdgesBetween.accept(horizontalVertex, verticalStream.apply(block.position, Direction.SOUTH));
+            });
+
+            return graph;
         }
 
         @Override
@@ -75,51 +124,33 @@ public class ASD {
         }
     }
 
-    @Getter
-    public static class GraphNode implements Comparable<GraphNode> {
-        private Integer heatLoss = 0;
-        private final Point position;
-        private GraphNode parent;
+    public enum Layer {
+        HORIZONTAL,
+        VERTICAL,
+    }
 
-        public GraphNode(Point position) {
-            this.position = position;
+    public static class HeatLossEdge extends DefaultWeightedEdge {
+        private double weight;
+
+        public HeatLossEdge() {
         }
 
-        public GraphNode(Point position, Integer heatLoss, GraphNode parent) {
-            this(position);
-            this.heatLoss = heatLoss;
-            this.parent = parent;
-        }
-
-        public Direction getDirection() {
-            if (parent == null) return null;
-           return Arrays.stream(Direction.values())
-                    .filter(d -> Objects.equals(d.move(parent.position), position))
-                    .findAny()
-                    .orElse(null);
-        }
-
-        public boolean isAcceptable() {
-            return Stream.iterate(this, Objects::nonNull, GraphNode::getParent)
-                    .limit(3)
-                    .map(GraphNode::getDirection)
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
-                    .values().stream().noneMatch(count -> count >= 3);
+        public HeatLossEdge(double weight) {
+            this.weight = weight;
         }
 
         @Override
-        public int compareTo(GraphNode o) {
-            return Integer.compare(this.heatLoss, o.heatLoss);
+        protected double getWeight() {
+            return this.weight;
         }
+    }
 
-        @Override
-        public String toString() {
-            return "GraphNode{" +
-                    "position=" + position +
-                    ", heatLoss=" + heatLoss +
-                    '}';
-        }
+    public record LayerVertex(Point position, Layer layer) {
+
+    }
+
+    public record HeatLossVertex(Point position, int heatLoss) {
+
     }
 
     @Getter

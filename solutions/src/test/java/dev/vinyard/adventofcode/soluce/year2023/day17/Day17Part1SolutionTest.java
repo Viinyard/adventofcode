@@ -17,7 +17,7 @@ public class Day17Part1SolutionTest extends BaseTest<Long> {
     public Stream<Arguments> testSolution() {
         return Stream.of(
             Arguments.of("soluce/year2023/day17/part1/test.txt", 102L, null, null),
-            Arguments.of("soluce/year2023/day17/input.txt", null, null, null)
+            Arguments.of("soluce/year2023/day17/input.txt", 963L, null, null)
         );
     }
 }
