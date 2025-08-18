@@ -22,7 +22,7 @@ lines returns [List<ASD.Tile> out, int x, int y]
     }
     : (line[$out, $y++] NEWLINE? {
         $x = Math.max($x, $line.x);
-    })+ EOF
+    })+
     ;
 
 line [List<ASD.Tile> tiles, int y] returns [int x]

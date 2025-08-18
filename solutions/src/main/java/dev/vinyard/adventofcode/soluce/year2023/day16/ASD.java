@@ -191,8 +191,6 @@ public class ASD {
                 case SOUTH ->  visitor.visit(getBeam(Direction.SOUTH));
             }
         }
-
-
     }
 
     public static class HorizontalSplitter extends Tile {
