@@ -36,26 +36,41 @@ public class ASD {
             return Optional.of(position).filter(this.bounds::contains).map(p -> grid[p.y][p.x]);
         }
 
-        public long getMinHeatLost() {
-            Graph<LayerVertex, HeatLossEdge> graph = createHeatLossGraph();
+        private LayerVertex addStartVertex(Graph<LayerVertex, HeatLossEdge> graph, Point position) {
+            BiConsumer<LayerVertex, LayerVertex> addEdge = (s, d) -> {
+                HeatLossEdge heatLossEdge = graph.addEdge(s, d);
+                graph.setEdgeWeight(heatLossEdge, 0.0);
+            };
 
-            LayerVertex start = new LayerVertex(this.blocks.getFirst().getPosition(), null);
-            LayerVertex dest = new LayerVertex(this.blocks.getLast().getPosition(), null);
+            LayerVertex start = new LayerVertex(position, null);
+            graph.addVertex(start);
+
+            addEdge.accept(start, new LayerVertex(position, Layer.HORIZONTAL));
+            addEdge.accept(start, new LayerVertex(position, Layer.VERTICAL));
+
+            return start;
+        }
+
+        private LayerVertex addDestVertex(Graph<LayerVertex, HeatLossEdge> graph, Point position) {
+            LayerVertex dest = new LayerVertex(position, null);
+            graph.addVertex(dest);
 
             BiConsumer<LayerVertex, LayerVertex> addEdge = (s, d) -> {
                 HeatLossEdge heatLossEdge = graph.addEdge(s, d);
                 graph.setEdgeWeight(heatLossEdge, 0.0);
             };
 
-            graph.addVertex(start);
+            addEdge.accept(new LayerVertex(position, Layer.HORIZONTAL), dest);
+            addEdge.accept(new LayerVertex(position, Layer.VERTICAL), dest);
 
-            addEdge.accept(start, new LayerVertex(this.blocks.getFirst().getPosition(), Layer.HORIZONTAL));
-            addEdge.accept(start, new LayerVertex(this.blocks.getFirst().getPosition(), Layer.VERTICAL));
+            return dest;
+        }
 
-            graph.addVertex(dest);
+        public long getMinHeatLostPart1() {
+            Graph<LayerVertex, HeatLossEdge> graph = createMinMaxGraph(0, 3);
 
-            addEdge.accept(new LayerVertex(this.blocks.getLast().getPosition(), Layer.HORIZONTAL), dest);
-            addEdge.accept(new LayerVertex(this.blocks.getLast().getPosition(), Layer.VERTICAL), dest);
+            LayerVertex start = addStartVertex(graph, this.blocks.getFirst().getPosition());
+            LayerVertex dest = addDestVertex(graph, this.blocks.getLast().getPosition());
 
             ShortestPathAlgorithm<LayerVertex, HeatLossEdge> dijkstra = new DijkstraShortestPath<>(graph);
 
@@ -64,7 +79,18 @@ public class ASD {
             return (long) path.getWeight();
         }
 
+        public long getMinHeatLostPart2() {
+            Graph<LayerVertex, HeatLossEdge> graph = createMinMaxGraph(3, 10);
 
+            LayerVertex start = addStartVertex(graph, this.blocks.getFirst().getPosition());
+            LayerVertex dest = addDestVertex(graph, this.blocks.getLast().getPosition());
+
+            ShortestPathAlgorithm<LayerVertex, HeatLossEdge> dijkstra = new DijkstraShortestPath<>(graph);
+
+            GraphPath<LayerVertex, HeatLossEdge> path = dijkstra.getPath(start, dest);
+
+            return (long) path.getWeight();
+        }
 
         private Graph<LayerVertex, HeatLossEdge> createEmptyGraph() {
             return GraphTypeBuilder.<LayerVertex, HeatLossEdge>directed()
@@ -75,7 +101,7 @@ public class ASD {
                     .buildGraph();
         }
 
-        private Graph<LayerVertex, HeatLossEdge> createHeatLossGraph() {
+        private Graph<LayerVertex, HeatLossEdge> createMinMaxGraph(int min, int max) {
             Graph<LayerVertex, HeatLossEdge> graph = createEmptyGraph();
 
             LayerVertex[][] verticalLayer = new LayerVertex[this.bounds.height][this.bounds.width];
@@ -91,15 +117,17 @@ public class ASD {
                 graph.addVertex(horizontalVertex);
             });
 
-            BiFunction<Point, Direction, Stream<Point>> vertexStream = (position, direction) -> Stream.iterate(direction.move(position), this.bounds::contains, direction::move).limit(3);
+            BiFunction<Point, Direction, Stream<Point>> vertexStream = (position, direction) -> Stream.iterate(direction.move(position), this.bounds::contains, direction::move).limit(max);
             BiFunction<Point, Direction, List<LayerVertex>> horizontalStream = vertexStream.andThen(s -> s.map(p -> horizontalLayer[p.y][p.x]).toList());
             BiFunction<Point, Direction, List<LayerVertex>> verticalStream = vertexStream.andThen(s -> s.map(p -> verticalLayer[p.y][p.x]).toList());
 
             BiConsumer<LayerVertex, List<LayerVertex>> addEdgesBetween = (origin, vertices) -> {
                 double heatLoss = 0;
-                for (LayerVertex v : vertices) {
-                    heatLoss += grid[v.position.y][v.position.x].getHeatLoss();
-                    HeatLossEdge heatLossEdge = graph.addEdge(origin, v);
+                for (int i = 0; i < vertices.size(); i++) {
+                    heatLoss += grid[vertices.get(i).position.y][vertices.get(i).position.x].getHeatLoss();
+
+                    if (i < min) continue;
+                    HeatLossEdge heatLossEdge = graph.addEdge(origin, vertices.get(i));
                     graph.setEdgeWeight(heatLossEdge, heatLoss);
                 }
             };

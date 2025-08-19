@@ -64,6 +64,6 @@ public class Day17Part1Solution implements Solution<Long> {
 
         ASD.Root root = parser.root().out;
 
-        return root.getMinHeatLost();
+        return root.getMinHeatLostPart1();
     }
 }
