@@ -1,6 +1,7 @@
 package dev.vinyard.adventofcode.soluce.year2023.day17;
 
 import lombok.Getter;
+import lombok.Setter;
 import org.jgrapht.Graph;
 import org.jgrapht.GraphPath;
 import org.jgrapht.alg.interfaces.ShortestPathAlgorithm;
@@ -10,12 +11,9 @@ import org.jgrapht.graph.builder.GraphTypeBuilder;
 
 import java.awt.*;
 import java.awt.geom.AffineTransform;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class ASD {
@@ -30,10 +28,6 @@ public class ASD {
             this.bounds = new Rectangle(dimension);
             this.grid = new Block[this.bounds.height][this.bounds.width];
             this.blocks.forEach(block -> grid[block.position.y][block.position.x] = block);
-        }
-
-        private Optional<Block> getBlockAt(Point position) {
-            return Optional.of(position).filter(this.bounds::contains).map(p -> grid[p.y][p.x]);
         }
 
         private LayerVertex addStartVertex(Graph<LayerVertex, HeatLossEdge> graph, Point position) {
@@ -69,8 +63,8 @@ public class ASD {
         public long getMinHeatLostPart1() {
             Graph<LayerVertex, HeatLossEdge> graph = createMinMaxGraph(0, 3);
 
-            LayerVertex start = addStartVertex(graph, this.blocks.getFirst().getPosition());
-            LayerVertex dest = addDestVertex(graph, this.blocks.getLast().getPosition());
+            LayerVertex start = addStartVertex(graph, this.blocks.getFirst().position());
+            LayerVertex dest = addDestVertex(graph, this.blocks.getLast().position());
 
             ShortestPathAlgorithm<LayerVertex, HeatLossEdge> dijkstra = new DijkstraShortestPath<>(graph);
 
@@ -82,8 +76,8 @@ public class ASD {
         public long getMinHeatLostPart2() {
             Graph<LayerVertex, HeatLossEdge> graph = createMinMaxGraph(3, 10);
 
-            LayerVertex start = addStartVertex(graph, this.blocks.getFirst().getPosition());
-            LayerVertex dest = addDestVertex(graph, this.blocks.getLast().getPosition());
+            LayerVertex start = addStartVertex(graph, this.blocks.getFirst().position());
+            LayerVertex dest = addDestVertex(graph, this.blocks.getLast().position());
 
             ShortestPathAlgorithm<LayerVertex, HeatLossEdge> dijkstra = new DijkstraShortestPath<>(graph);
 
@@ -124,7 +118,7 @@ public class ASD {
             BiConsumer<LayerVertex, List<LayerVertex>> addEdgesBetween = (origin, vertices) -> {
                 double heatLoss = 0;
                 for (int i = 0; i < vertices.size(); i++) {
-                    heatLoss += grid[vertices.get(i).position.y][vertices.get(i).position.x].getHeatLoss();
+                    heatLoss += grid[vertices.get(i).position.y][vertices.get(i).position.x].heatLoss();
 
                     if (i < min) continue;
                     HeatLossEdge heatLossEdge = graph.addEdge(origin, vertices.get(i));
@@ -145,11 +139,6 @@ public class ASD {
 
             return graph;
         }
-
-        @Override
-        public String toString() {
-            return Arrays.stream(grid).map(row -> Arrays.stream(row).map(b -> Integer.toString(b.getHeatLoss())).collect(Collectors.joining())).collect(Collectors.joining("\n"));
-        }
     }
 
     public enum Layer {
@@ -157,45 +146,15 @@ public class ASD {
         VERTICAL,
     }
 
+    @Getter
+    @Setter
     public static class HeatLossEdge extends DefaultWeightedEdge {
         private double weight;
-
-        public HeatLossEdge() {
-        }
-
-        public HeatLossEdge(double weight) {
-            this.weight = weight;
-        }
-
-        @Override
-        protected double getWeight() {
-            return this.weight;
-        }
     }
 
-    public record LayerVertex(Point position, Layer layer) {
+    public record LayerVertex(Point position, Layer layer) { }
 
-    }
-
-    public record HeatLossVertex(Point position, int heatLoss) {
-
-    }
-
-    @Getter
-    public static class Block {
-        private Point position;
-        private int heatLoss;
-
-        public Block(Point position, int heatLoss) {
-            this.position = position;
-            this.heatLoss = heatLoss;
-        }
-
-        @Override
-        public String toString() {
-            return Integer.toString(heatLoss);
-        }
-    }
+    public record Block(Point position, int heatLoss) { }
 
     public enum Direction {
         NORTH(270, '^'),
