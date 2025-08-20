@@ -40,12 +40,21 @@ public class ASD {
     public static class Digger {
         private Direction direction;
         private int length;
-        private Color color;
 
-        public Digger(Direction direction, int length, Color color) {
+        public Digger(int color) {
+            this.direction = switch (color & 0xF) {
+                case 0 -> Direction.EAST;
+                case 1 -> Direction.SOUTH;
+                case 2 -> Direction.WEST;
+                case 3 -> Direction.NORTH;
+                default -> throw new IllegalArgumentException("Invalid direction color: " + color);
+            };
+            this.length = (color >> 4 & 0xFFFFF);
+        }
+
+        public Digger(Direction direction, int length) {
             this.direction = direction;
             this.length = length;
-            this.color = color;
         }
     }
 

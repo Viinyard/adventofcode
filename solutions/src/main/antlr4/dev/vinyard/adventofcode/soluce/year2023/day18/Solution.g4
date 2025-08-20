@@ -8,24 +8,39 @@ options {
 import java.awt.Color;
 }
 
-root returns [ASD.Root out]
+part1 returns [ASD.Root out]
     @init {
         List<ASD.Digger> diggers = new ArrayList<>();
     }
-    : (digger { diggers.add($digger.out); })+ {
+    : (diggerP1 { diggers.add($diggerP1.out); })+ {
         $out = new ASD.Root(diggers);
     }
     ;
 
-digger returns [ASD.Digger out]
-    : direction NUMBER edgeColor {
-        $out = new ASD.Digger($direction.out, Integer.parseInt($NUMBER.text), $edgeColor.out);
+part2 returns [ASD.Root out]
+    @init {
+        List<ASD.Digger> diggers = new ArrayList<>();
+    }
+    : (diggerP2 { diggers.add($diggerP2.out); })+ {
+        $out = new ASD.Root(diggers);
     }
     ;
 
-edgeColor returns [Color out]
+diggerP2 returns [ASD.Digger out]
+    : direction NUMBER edgeColor {
+        $out = new ASD.Digger($edgeColor.out);
+    }
+    ;
+
+diggerP1 returns [ASD.Digger out]
+    : direction NUMBER edgeColor {
+        $out = new ASD.Digger($direction.out, Integer.parseInt($NUMBER.text));
+    }
+    ;
+
+edgeColor returns [Integer out]
     : OPEN_PAREN SHARP NUMBER CLOSE_PAREN {
-        $out = new Color(Integer.valueOf($NUMBER.text, 16));
+        $out = Integer.valueOf($NUMBER.text, 16);
     }
     ;
 
