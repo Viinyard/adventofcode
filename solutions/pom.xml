@@ -29,7 +29,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.5.3</version>
                 <configuration>
-                    <argLine>-Xss32m</argLine>
+                    <argLine>-Xss128m</argLine>
                 </configuration>
             </plugin>
 
