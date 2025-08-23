@@ -13,9 +13,6 @@ root returns [ASD.Root out]
     @init {
         List<ASD.Rating> ratings = new ArrayList<>();
         Map<String, ASD.Expression<Long>> registry = new HashMap<>();
-
-        registry.put("A", (h) -> h.values().stream().mapToLong(l -> l).sum());
-        registry.put("R", (h) -> 0L);
     }
     : workflow[registry]* (rating[registry] { ratings.add($rating.out); })* EOF {
         $out = new ASD.Root(ratings, registry);
@@ -28,12 +25,12 @@ workflow [Map<String, ASD.Expression<Long>> registry]
     }
     ;
 
-rule [Map<String, ASD.Expression<Long>> registry] returns [ASD.IfStatement out]
+rule [Map<String, ASD.Expression<Long>> registry] returns [ASD.Rule out]
     : condition COLON thenStmt=statement[registry] COMMA elseRule=rule[registry] {
-        $out = new ASD.IfStatement($condition.out, $thenStmt.out, $elseRule.out);
+        $out = new ASD.Rule($condition.out, $thenStmt.out, $elseRule.out);
     }
     | condition COLON thenStmt=statement[registry] COMMA elseStmt=statement[registry] {
-        $out = new ASD.IfStatement($condition.out, $thenStmt.out, $elseStmt.out);
+        $out = new ASD.Rule($condition.out, $thenStmt.out, $elseStmt.out);
     }
     ;
 
@@ -43,7 +40,7 @@ statement [Map<String, ASD.Expression<Long>> registry] returns [ASD.Statement ou
     }
     ;
 
-condition returns [ASD.Expression<Boolean> out]
+condition returns [ASD.Condition out]
     : NAME OP_INF INT {
         $out = new ASD.LessThan($NAME.text, Integer.parseInt($INT.text));
     }
