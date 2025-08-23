@@ -8,21 +8,17 @@ public class ASD {
 
     public static class Root {
 
-        private List<Call> calls;
-        private Map<String, ASD.Expression<Long>> functions;
+        private final List<Rating> ratings;
+        private final Map<String, ASD.Expression<Long>> registry;
 
-        public Root(List<Call> calls, Map<String, ASD.Expression<Long>> functions) {
-            this.calls = calls;
-            this.functions = functions;
+        public Root(List<Rating> ratings, Map<String, ASD.Expression<Long>> registry) {
+            this.ratings = ratings;
+            this.registry = registry;
         }
 
         public long evaluateAll() {
-            functions.put("A", (h) -> h.values().stream().mapToLong(l -> l).sum());
-            functions.put("R", (h) -> 0L);
-
-            return calls.stream().mapToLong(c -> c.evaluate(new HashMap<>())).sum();
+            return ratings.stream().mapToLong(c -> c.evaluate(new HashMap<>())).sum();
         }
-
     }
 
     @FunctionalInterface
@@ -31,8 +27,8 @@ public class ASD {
     }
 
     public static class Statement implements Expression<Long> {
-        private String variable;
-        private Map<String, Expression<Long>> statements;
+        private final String variable;
+        private final Map<String, Expression<Long>> statements;
 
         public Statement(String variable, Map<String, Expression<Long>> statements) {
             this.variable = variable;
@@ -45,7 +41,7 @@ public class ASD {
     }
 
     public static class Constant implements Expression<Long> {
-        private Long value;
+        private final Long value;
 
         public Constant(Long value) {
             this.value = value;
@@ -57,12 +53,12 @@ public class ASD {
         }
     }
 
-    public static class Call implements Expression<Long> {
-        private List<Expression<Void>> args;
-        private Map<String, Expression<Long>> functions;
-        private String functionName;
+    public static class Rating implements Expression<Long> {
+        private final List<Expression<Void>> args;
+        private final Map<String, Expression<Long>> functions;
+        private final String functionName;
 
-        public Call(String functionName, List<Expression<Void>> args, Map<String, Expression<Long>> functions) {
+        public Rating(String functionName, List<Expression<Void>> args, Map<String, Expression<Long>> functions) {
             this.args = args;
             this.functions = functions;
             this.functionName = functionName;
@@ -79,8 +75,8 @@ public class ASD {
     }
 
     public static class Assignment implements Expression<Void> {
-        private String variable;
-        private Expression<Long> expression;
+        private final String variable;
+        private final Expression<Long> expression;
 
         public Assignment(String variable, Expression<Long> expression) {
             this.variable = variable;
@@ -96,9 +92,9 @@ public class ASD {
     }
 
     public static class IfStatement implements Expression<Long> {
-        private Expression<Boolean> condition;
-        private Expression<Long> thenExpression;
-        private Expression<Long> elseExpression;
+        private final Expression<Boolean> condition;
+        private final Expression<Long> thenExpression;
+        private final Expression<Long> elseExpression;
 
         public IfStatement(Expression<Boolean> condition, Expression<Long> thenExpression, Expression<Long> elseExpression) {
             this.condition = condition;
