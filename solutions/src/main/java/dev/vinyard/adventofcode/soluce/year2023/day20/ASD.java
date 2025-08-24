@@ -2,7 +2,9 @@ package dev.vinyard.adventofcode.soluce.year2023.day20;
 
 import lombok.Getter;
 
+import java.math.BigInteger;
 import java.util.*;
+import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -18,14 +20,84 @@ public class ASD {
         }
 
         public long pressButton(int times) {
-
-
             for (int i = 0; i < times; i++)
                 dispatcher.pressButton();
 
             Map<Pulse, Long> pulseCount = dispatcher.pulses.stream().collect(Collectors.groupingBy(Wire::getPulse, Collectors.counting()));
 
             return pulseCount.values().stream().reduce((a, b) -> a * b).orElse(0L);
+        }
+
+        public long part2() {
+            BroadcasterModule broadcaster = (BroadcasterModule) dispatcher.modules.get("broadcaster");
+
+            BinaryOperator<BigInteger> lcm = (a, b) -> a.multiply(b).divide(a.gcd(b));
+            return broadcaster.outputs.stream()
+                    .map(dispatcher::getModule)
+                    .map(FlipFlopModule.class::cast)
+                    .map(bit -> BinaryCounterModule.from(bit, dispatcher))
+                    .map(BinaryCounterModule::getNandValue)
+                    .reduce(lcm)
+                    .orElseThrow()
+                    .longValue();
+        }
+    }
+
+    public static class BinaryCounterModule {
+
+        private final LinkedList<FlipFlopModule> bits;
+        private final Dispatcher dispatcher;
+
+        private BinaryCounterModule(LinkedList<FlipFlopModule> bits, Dispatcher dispatcher) {
+            this.bits = bits;
+            if (bits.size() != 12) {
+                throw new IllegalArgumentException("A binary counter must have exactly 12 bits.");
+            }
+            this.dispatcher = dispatcher;
+        }
+
+        public static BinaryCounterModule from(FlipFlopModule bit, Dispatcher dispatcher) {
+            LinkedList<FlipFlopModule> bits = Stream.iterate(bit, Objects::nonNull, a -> a.outputs.stream().map(dispatcher::getModule).filter(FlipFlopModule.class::isInstance).map(FlipFlopModule.class::cast).findAny().orElse(null))
+                    .collect(Collectors.toCollection(LinkedList::new));
+
+            ConjunctionModule nand = bits.stream().flatMap(m -> Stream.of(
+                            m.getInputs(),
+                            m.getOutputs()
+                    )).flatMap(Collection::stream).distinct().map(dispatcher::getModule)
+                    .filter(ConjunctionModule.class::isInstance)
+                    .map(ConjunctionModule.class::cast)
+                    .reduce((a, b) -> {
+                        if (!a.equals(b)) throw new IllegalArgumentException("If a binary counter has multiple nand modules, the cycle of the counter is more complex than expected.");
+                        return a;
+                    })
+                    .orElseThrow(() -> new IllegalArgumentException("If a binary counter has no nand module, the cycle of the counter is more complex than expected."));
+
+            for (FlipFlopModule b : bits) {
+                boolean isConnectedToNand = b.outputs.stream().map(dispatcher::getModule).anyMatch(nand::equals);
+                boolean isNandConnectedToBit = b.inputs.stream().map(dispatcher::getModule).anyMatch(nand::equals);
+
+                if (!isConnectedToNand && !isNandConnectedToBit) {
+                    throw new IllegalArgumentException("If a bit of a binary counter is not connected to a nand module as output, it must be connected to a nand module as input. If it's not, the cycle of the counter is more complex than expected.");
+                }
+            }
+
+            return new BinaryCounterModule(bits, dispatcher);
+        }
+
+        public BigInteger getNandValue() {
+            BigInteger nandValue = BigInteger.ZERO;
+
+            for (int i = 0; i < bits.size(); i++) {
+                FlipFlopModule bit = bits.get(i);
+
+                boolean isConnectedToNand = bit.outputs.stream().map(dispatcher::getModule).anyMatch(m -> m instanceof ConjunctionModule);
+
+                if (isConnectedToNand) {
+                    nandValue = nandValue.setBit(i);
+                }
+            }
+
+            return nandValue;
         }
     }
 
@@ -69,6 +141,10 @@ public class ASD {
         private void process(Wire wire) {
             Module module = modules.getOrDefault(wire.to, dummy);
             module.pulse(wire);
+        }
+
+        public Module getModule(String name) {
+            return modules.get(name);
         }
 
         public ButtonModule getButton() {
@@ -126,11 +202,13 @@ public class ASD {
      * Each pulse is either a high pulse or a low pulse.
      * When a module sends a pulse, it sends that type of pulse to each module in its list of destination modules.
      */
+    @Getter
     public static abstract class Module {
 
         protected final String name;
         protected final List<String> outputs;
         protected final Dispatcher dispatcher;
+        protected final List<String> inputs = new ArrayList<>();
 
         public Module(String name, List<String> outputs, Dispatcher dispatcher) {
             this.name = name;
@@ -144,7 +222,7 @@ public class ASD {
         }
 
         public void addInput(String input) {
-            // do nothing by default
+            this.inputs.add(input);
         }
 
         public abstract void pulse(Wire wire);
@@ -239,6 +317,7 @@ public class ASD {
 
         @Override
         public void addInput(String input) {
+            super.addInput(input);
             pulses.put(input, Pulse.LOW);
         }
 
