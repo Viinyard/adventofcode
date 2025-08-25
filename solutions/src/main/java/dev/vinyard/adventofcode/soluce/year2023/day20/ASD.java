@@ -6,36 +6,43 @@ import java.math.BigInteger;
 import java.util.*;
 import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class ASD {
 
     public static class Root {
 
-        private final Dispatcher dispatcher;
+        private final Registry registry;
 
-        public Root(Dispatcher dispatcher) {
-            this.dispatcher = dispatcher;
-            this.dispatcher.init();
+        public Root(Registry registry) {
+            this.registry = registry;
         }
 
         public long pressButton(int times) {
-            for (int i = 0; i < times; i++)
-                dispatcher.pressButton();
+            Circuit circuit = new Circuit();
+            PulseCounter counter = new PulseCounter();
+            registry.modules.values().forEach(m -> {
+                m.addListener(circuit);
+                m.addListener(counter);
+            });
 
-            Map<Pulse, Long> pulseCount = dispatcher.pulses.stream().collect(Collectors.groupingBy(Wire::getPulse, Collectors.counting()));
+            ButtonModule button = (ButtonModule) registry.getModule("button");
+            button.addWakeListener(circuit);
 
-            return pulseCount.values().stream().reduce((a, b) -> a * b).orElse(0L);
+            IntStream.range(0, times).forEach(i -> button.press());
+
+            return counter.getProduct();
         }
 
         public long part2() {
-            BroadcasterModule broadcaster = (BroadcasterModule) dispatcher.modules.get("broadcaster");
+            BroadcasterModule broadcaster = (BroadcasterModule) registry.getModule("broadcaster");
 
             BinaryOperator<BigInteger> lcm = (a, b) -> a.multiply(b).divide(a.gcd(b));
+
             return broadcaster.outputs.stream()
-                    .map(dispatcher::getModule)
                     .map(FlipFlopModule.class::cast)
-                    .map(bit -> BinaryCounterModule.from(bit, dispatcher))
+                    .map(BinaryCounterModule::from)
                     .map(BinaryCounterModule::getNandValue)
                     .reduce(lcm)
                     .orElseThrow()
@@ -43,27 +50,80 @@ public class ASD {
         }
     }
 
+    public static class PulseCounter implements PulseListener {
+        @Getter
+        private final Map<Signal, Long> pulseCount = new HashMap<>();
+
+        @Override
+        public void onPulse(Pulse pulse) {
+            pulseCount.merge(pulse.signal(), 1L, Long::sum);
+        }
+
+        public long getProduct() {
+            return pulseCount.values().stream().reduce((a, b) -> a * b).orElse(0L);
+        }
+    }
+
+    public static class Registry {
+
+        Map<String, Module> modules = new HashMap<>();
+
+        public void registerModule(Module module) {
+            this.modules.putIfAbsent(module.getName(), module);
+        }
+
+        public void registerModule(String name) {
+            this.modules.putIfAbsent(name, null);
+        }
+
+        public void computeAll() {
+            modules.keySet().forEach(name -> modules.computeIfAbsent(name, DummyModule::new));
+        }
+
+        public Module getModule(String name) {
+            return modules.get(name);
+        }
+    }
+
+    public static class Circuit implements PulseListener, WakeListener {
+
+        private final LinkedList<Pulse> stack = new LinkedList<>();
+
+        @Override
+        public void onPulse(Pulse pulse) {
+            stack.addLast(pulse);
+        }
+
+        @Override
+        public void onWake() {
+            while (!stack.isEmpty()) {
+                List<Pulse> tick = new ArrayList<>(stack);
+                stack.clear();
+
+                tick.forEach(s -> s.to().pulse(s));
+            }
+        }
+    }
+
     public static class BinaryCounterModule {
 
         private final LinkedList<FlipFlopModule> bits;
-        private final Dispatcher dispatcher;
 
-        private BinaryCounterModule(LinkedList<FlipFlopModule> bits, Dispatcher dispatcher) {
+        private BinaryCounterModule(LinkedList<FlipFlopModule> bits) {
             this.bits = bits;
             if (bits.size() != 12) {
                 throw new IllegalArgumentException("A binary counter must have exactly 12 bits.");
             }
-            this.dispatcher = dispatcher;
         }
 
-        public static BinaryCounterModule from(FlipFlopModule bit, Dispatcher dispatcher) {
-            LinkedList<FlipFlopModule> bits = Stream.iterate(bit, Objects::nonNull, a -> a.outputs.stream().map(dispatcher::getModule).filter(FlipFlopModule.class::isInstance).map(FlipFlopModule.class::cast).findAny().orElse(null))
+        public static BinaryCounterModule from(FlipFlopModule bit) {
+            LinkedList<FlipFlopModule> bits = Stream.iterate(bit, Objects::nonNull, a -> a.outputs.stream().filter(FlipFlopModule.class::isInstance).map(FlipFlopModule.class::cast).findAny().orElse(null))
                     .collect(Collectors.toCollection(LinkedList::new));
 
             ConjunctionModule nand = bits.stream().flatMap(m -> Stream.of(
                             m.getInputs(),
                             m.getOutputs()
-                    )).flatMap(Collection::stream).distinct().map(dispatcher::getModule)
+                    )).flatMap(Collection::stream).distinct()
                     .filter(ConjunctionModule.class::isInstance)
                     .map(ConjunctionModule.class::cast)
                     .reduce((a, b) -> {
@@ -73,15 +133,15 @@ public class ASD {
                     .orElseThrow(() -> new IllegalArgumentException("If a binary counter has no nand module, the cycle of the counter is more complex than expected."));
 
             for (FlipFlopModule b : bits) {
-                boolean isConnectedToNand = b.outputs.stream().map(dispatcher::getModule).anyMatch(nand::equals);
-                boolean isNandConnectedToBit = b.inputs.stream().map(dispatcher::getModule).anyMatch(nand::equals);
+                boolean isConnectedToNand = b.outputs.stream().anyMatch(nand::equals);
+                boolean isNandConnectedToBit = b.inputs.stream().anyMatch(nand::equals);
 
                 if (!isConnectedToNand && !isNandConnectedToBit) {
                     throw new IllegalArgumentException("If a bit of a binary counter is not connected to a nand module as output, it must be connected to a nand module as input. If it's not, the cycle of the counter is more complex than expected.");
                 }
             }
 
-            return new BinaryCounterModule(bits, dispatcher);
+            return new BinaryCounterModule(bits);
         }
 
         public BigInteger getNandValue() {
@@ -90,7 +150,7 @@ public class ASD {
             for (int i = 0; i < bits.size(); i++) {
                 FlipFlopModule bit = bits.get(i);
 
-                boolean isConnectedToNand = bit.outputs.stream().map(dispatcher::getModule).anyMatch(m -> m instanceof ConjunctionModule);
+                boolean isConnectedToNand = bit.outputs.stream().anyMatch(m -> m instanceof ConjunctionModule);
 
                 if (isConnectedToNand) {
                     nandValue = nandValue.setBit(i);
@@ -101,100 +161,14 @@ public class ASD {
         }
     }
 
-    public static class Dispatcher {
+    public record Pulse(Module from, Module to, Signal signal) {}
 
-        private final Map<String, Module> modules = new HashMap<>();
-        private final LinkedList<Wire> stack = new LinkedList<>();
-        private final List<Wire> pulses = new ArrayList<>();
-        private final Module dummy = new DummyModule(this);
-
-        public Dispatcher() {
-        }
-
-        public void init() {
-            modules.values().forEach(Module::init);
-        }
-
-        private List<Wire> tick() {
-            List<Wire> tick = new ArrayList<>();
-
-            while (!stack.isEmpty()) {
-                Wire wire = stack.pop();
-
-                pulses.add(wire);
-                tick.add(wire);
-            }
-
-            return tick;
-        }
-
-        public void pressButton() {
-            this.getButton().press();
-            while (!stack.isEmpty()) {
-
-                List<Wire> tick = tick();
-
-                tick.forEach(this::process);
-            }
-        }
-
-        private void process(Wire wire) {
-            Module module = modules.getOrDefault(wire.to, dummy);
-            module.pulse(wire);
-        }
-
-        public Module getModule(String name) {
-            return modules.get(name);
-        }
-
-        public ButtonModule getButton() {
-            return new ButtonModule(List.of("broadcaster"), this);
-        }
-
-        public void registerModule(String name, Module module) {
-            this.modules.put(name, module);
-        }
-
-        public void dispatch(Wire wire) {
-            stack.addLast(wire);
-        }
-
-        public void registerInputs(String name, List<String> outputs) {
-            outputs.stream().map(this.modules::get).flatMap(Stream::ofNullable).forEach(module -> {
-                module.addInput(name);
-            });
-        }
+    public interface PulseListener {
+        void onPulse(Pulse pulse);
     }
 
-    @Getter
-    public static class Wire {
-
-        private final String from;
-        private final String to;
-        private final Pulse pulse;
-
-        public Wire(String from, String to, Pulse pulse) {
-            this.from = from;
-            this.to = to;
-            this.pulse = pulse;
-        }
-
-        @Override
-        public String toString() {
-            return "%s -%s-> %s".formatted(from, pulse.toString().toLowerCase(), to);
-        }
-    }
-
-    public static class DummyModule extends Module {
-
-        public DummyModule(Dispatcher dispatcher) {
-            super("", List.of(), dispatcher);
-        }
-
-        @Override
-        public void pulse(Wire wire) {
-            // do nothing
-        }
+    public interface WakeListener {
+        void onWake();
     }
 
     /**
@@ -205,58 +179,79 @@ public class ASD {
     @Getter
     public static abstract class Module {
 
+        protected List<PulseListener> listeners = new ArrayList<>();
         protected final String name;
-        protected final List<String> outputs;
-        protected final Dispatcher dispatcher;
-        protected final List<String> inputs = new ArrayList<>();
+        protected final List<Module> outputs = new ArrayList<>();
+        protected final List<Module> inputs = new ArrayList<>();
 
-        public Module(String name, List<String> outputs, Dispatcher dispatcher) {
+        public Module(String name) {
             this.name = name;
-            this.outputs = outputs;
-            this.dispatcher = dispatcher;
-            this.dispatcher.registerModule(name, this);
         }
 
-        public void init() {
-            this.dispatcher.registerInputs(name, outputs);
+        public void addListener(PulseListener listener) {
+            this.listeners.add(listener);
         }
 
-        public void addInput(String input) {
-            this.inputs.add(input);
+        public void addOutput(Module module) {
+            this.outputs.add(module);
+            module.addInput(this);
         }
 
-        public abstract void pulse(Wire wire);
-
-        protected void sendPulse(Pulse pulse) {
-            outputs.stream().map(to -> new Wire(this.name, to, pulse)).forEach(dispatcher::dispatch);
-        }
-    }
-
-    public static class BroadcasterModule extends Module {
-
-        public BroadcasterModule(List<String> outputs, Dispatcher dispatcher) {
-            super("broadcaster", outputs, dispatcher);
+        public void addInput(Module module) {
+            this.inputs.add(module);
         }
 
-        @Override
-        public void pulse(Wire wire) {
-            this.sendPulse(wire.pulse);
+        public abstract void pulse(Pulse pulse);
+
+        protected void sendPulse(Signal signal) {
+            outputs.stream().map(to -> new Pulse(this, to, signal)).forEach(p -> listeners.forEach(l -> l.onPulse(p)));
         }
     }
 
     public static class ButtonModule extends Module {
 
-        public ButtonModule(List<String> outputs, Dispatcher dispatcher) {
-            super("button", outputs, dispatcher);
+        private final List<WakeListener> wakeListeners = new ArrayList<>();
+
+        public ButtonModule() {
+            super("button");
+        }
+
+        public void addWakeListener(WakeListener listener) {
+            this.wakeListeners.add(listener);
         }
 
         public void press() {
-            this.sendPulse(Pulse.LOW);
+            sendPulse(Signal.LOW);
+            wakeListeners.forEach(WakeListener::onWake);
         }
 
         @Override
-        public void pulse(Wire wire) {
-            throw new UnsupportedOperationException("Button modules cannot receive pulses.");
+        public void pulse(Pulse pulse) {
+            throw new UnsupportedOperationException("A button module cannot receive pulses.");
+        }
+    }
+
+    public static class DummyModule extends Module {
+
+        public DummyModule(String name) {
+            super(name);
+        }
+
+        @Override
+        public void pulse(Pulse pulse) {
+            // do nothing
+        }
+    }
+
+    public static class BroadcasterModule extends Module {
+
+        public BroadcasterModule() {
+            super("broadcaster");
+        }
+
+        @Override
+        public void pulse(Pulse pulse) {
+            this.sendPulse(pulse.signal);
         }
     }
 
@@ -272,26 +267,26 @@ public class ASD {
 
         private State state = State.OFF;
 
-        public FlipFlopModule(String name, List<String> outputs, Dispatcher dispatcher) {
-            super(name, outputs, dispatcher);
+        public FlipFlopModule(String name) {
+            super(name);
         }
 
         private void switchState() {
             switch (this.state) {
                 case OFF -> {
                     this.state = State.ON;
-                    this.sendPulse(Pulse.HIGH);
+                    this.sendPulse(Signal.HIGH);
                 }
                 case ON -> {
                     this.state = State.OFF;
-                    this.sendPulse(Pulse.LOW);
+                    this.sendPulse(Signal.LOW);
                 }
             }
         }
 
         @Override
-        public void pulse(Wire wire) {
-            switch (wire.pulse) {
+        public void pulse(Pulse pulse) {
+            switch (pulse.signal) {
                 case HIGH -> {
                     // do nothing
                 }
@@ -309,26 +304,26 @@ public class ASD {
      */
     public static class ConjunctionModule extends Module {
 
-        private final Map<String, Pulse> pulses = new HashMap<>();
+        private final Map<Module, Signal> pulses = new HashMap<>();
 
-        public ConjunctionModule(String name, List<String> outputs, Dispatcher dispatcher) {
-            super(name, outputs, dispatcher);
+        public ConjunctionModule(String name) {
+            super(name);
         }
 
         @Override
-        public void addInput(String input) {
-            super.addInput(input);
-            pulses.put(input, Pulse.LOW);
+        public void addInput(Module module) {
+            super.addInput(module);
+            pulses.put(module, Signal.LOW);
         }
 
         @Override
-        public void pulse(Wire wire) {
-            pulses.put(wire.from, wire.pulse);
+        public void pulse(Pulse pulse) {
+            pulses.put(pulse.from, pulse.signal);
 
-            if (pulses.values().stream().allMatch(Pulse.HIGH::equals)) {
-                this.sendPulse(Pulse.LOW);
+            if (pulses.values().stream().allMatch(Signal.HIGH::equals)) {
+                this.sendPulse(Signal.LOW);
             } else {
-                this.sendPulse(Pulse.HIGH);
+                this.sendPulse(Signal.HIGH);
             }
         }
     }
@@ -337,7 +332,7 @@ public class ASD {
         ON, OFF
     }
 
-    public enum Pulse {
+    public enum Signal {
         HIGH, LOW
     }
 

@@ -111,7 +111,9 @@ public class Day20Part1Solution implements Solution<Long> {
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         SolutionParser parser = new SolutionParser(tokens);
 
-        ASD.Root root = parser.root().out;
+        ASD.Registry registry = parser.register().out;
+        parser.reset();
+        ASD.Root root = parser.root(registry).out;
 
         return root.pressButton(1000);
     }
