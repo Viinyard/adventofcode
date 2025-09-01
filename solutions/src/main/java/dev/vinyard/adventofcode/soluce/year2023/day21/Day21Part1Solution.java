@@ -99,6 +99,6 @@ public class Day21Part1Solution implements Solution<Long> {
 
         ASD.Root root = parser.root().out;
 
-        return root.countReachablePlotsFromElve();
+        return root.countReachablePlotsFromElvePart1();
     }
 }
