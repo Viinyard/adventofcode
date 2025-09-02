@@ -108,12 +108,9 @@ public class ASD {
                 if (current.steps() >= maxSteps)
                     continue;
 
-                for (Point neighbor : getNeighbours(current.cell())) {
-                    if (!visited.add(neighbor))
-                        continue;
-
-                    queue.add(new Node(neighbor, current.steps() + 1));
-                }
+                for (Point neighbor : getNeighbours(current.cell()))
+                    if (visited.add(neighbor))
+                        queue.add(new Node(neighbor, current.steps() + 1));
             }
 
             return result.size();
