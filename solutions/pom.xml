@@ -156,6 +156,14 @@
             <artifactId>jgrapht-core</artifactId>
             <version>1.5.2</version>
         </dependency>
+
+        <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-geometry-euclidean -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-geometry-euclidean</artifactId>
+            <version>1.0</version>
+        </dependency>
+
     </dependencies>
 
 </project>
