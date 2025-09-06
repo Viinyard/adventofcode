@@ -5,9 +5,9 @@ import org.apache.commons.geometry.euclidean.threed.AffineTransformMatrix3D;
 import org.apache.commons.geometry.euclidean.threed.Bounds3D;
 import org.apache.commons.geometry.euclidean.threed.Vector3D;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public class ASD {
 
@@ -53,9 +53,8 @@ public class ASD {
         private List<Brick> fallingOnBricks;
 
         public void setOthers(List<Brick> bricks) {
-            this.others = bricks.stream().filter(b -> !b.equals(this)).toList();
-            this.bricksByTopZ = this.others.stream().map(Brick::getBounds).collect(Collectors.groupingBy(b -> b.getMax().getZ()));
-            this.bricksByBottomZ = this.others.stream().map(Brick::getBounds).collect(Collectors.groupingBy(b -> b.getMin().getZ()));
+            this.others = new ArrayList<>(bricks);
+            this.others.remove(this);
         }
 
         public void setSupportingBricks() {
@@ -84,23 +83,31 @@ public class ASD {
             return this.bounds.intersects(other.bounds);
         }
 
-        public boolean canFall() {
-            AffineTransformMatrix3D fall = AffineTransformMatrix3D.createTranslation(Vector3D.of(0, 0, -1));
-            Bounds3D moved = Bounds3D.from(fall.apply(bounds.getMin()), fall.apply(bounds.getMax()));
-            boolean collision = others.stream().map(Brick::getBounds).anyMatch(moved::intersects);
-            return !collision && moved.getMin().getZ() >= 1;
+        public double getFallDistance() {
+            Bounds3D moved = Bounds3D.from(
+                    Vector3D.of(bounds.getMin().getX(), bounds.getMin().getY(), 1),
+                    bounds.getMax()
+            );
+
+            return others.stream().map(Brick::getBounds).filter(moved::intersects)
+                    .map(Bounds3D::getMax).mapToDouble(Vector3D::getZ).map(d -> d + 1).max().orElse(1) - bounds.getMin().getZ();
         }
 
         public void fall() {
-            AffineTransformMatrix3D fall = AffineTransformMatrix3D.createTranslation(Vector3D.of(0, 0, -1));
-            while (canFall()) {
-                bounds = Bounds3D.from(fall.apply(bounds.getMin()), fall.apply(bounds.getMax()));
-            }
+            AffineTransformMatrix3D fall = AffineTransformMatrix3D.createTranslation(Vector3D.of(0, 0, getFallDistance()));
+            bounds = Bounds3D.from(fall.apply(bounds.getMin()), fall.apply(bounds.getMax()));
         }
 
         @Override
         public int compareTo(Brick o) {
             return Double.compare(this.bounds.getMin().getZ(), o.bounds.getMin().getZ());
+        }
+
+        @Override
+        public String toString() {
+            return "Brick{" +
+                    "bounds=" + bounds +
+                    '}';
         }
     }
 }
