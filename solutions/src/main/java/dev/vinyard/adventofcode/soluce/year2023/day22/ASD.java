@@ -11,7 +11,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class ASD {
 
@@ -30,11 +29,7 @@ public class ASD {
 
         public Long part2() {
             bricks.forEach(Brick::fall);
-            return bricks.stream().mapToLong(b -> {
-                Set<Brick> brickSet = new HashSet<>();
-                brickSet.add(b);
-                return b.getAllFallingOnBricks(brickSet).size();
-            }).sum();
+            return bricks.stream().mapToLong(b -> b.getAllFallingOnBricks(new HashSet<>()).size() - 1).sum();
         }
     }
 
@@ -114,11 +109,13 @@ public class ASD {
         }
 
         public Set<Brick> getAllFallingOnBricks(Set<Brick> bricks) {
-            Set<Brick> supportingBricks = new HashSet<>(getSupportingBricks());
-            Set<Brick> fallingOnBricks = supportingBricks.stream().filter(s -> bricks.containsAll(s.getSupportedByBricks())).collect(Collectors.toSet());
-            bricks.addAll(fallingOnBricks);
-            fallingOnBricks.addAll(fallingOnBricks.stream().map(b -> b.getAllFallingOnBricks(bricks)).flatMap(Set::stream).collect(Collectors.toSet()));
-            return fallingOnBricks;
+            bricks.add(this);
+
+            getSupportingBricks().stream()
+                    .filter(b -> bricks.containsAll(b.getSupportedByBricks()))
+                    .forEach(b -> b.getAllFallingOnBricks(bricks));
+
+            return bricks;
         }
 
         public Brick(Bounds3D bounds, LinkedList<Brick> bricks) {
