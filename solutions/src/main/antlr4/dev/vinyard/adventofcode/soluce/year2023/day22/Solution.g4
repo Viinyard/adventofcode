@@ -7,19 +7,22 @@ options {
 @header {
 import org.apache.commons.geometry.euclidean.threed.Vector3D;
 import org.apache.commons.geometry.euclidean.threed.Bounds3D;
+import java.util.LinkedList;
 }
 
 root returns [ASD.Root out]
     @init {
-        List<ASD.Brick> bricks = new ArrayList<>();
+        LinkedList<ASD.Brick> bricks = new LinkedList<>();
     }
-    : (brick { bricks.add($brick.out); })*
-      { $out = new ASD.Root(bricks); }
+    : (brick[bricks])* {
+        bricks.sort(ASD.Brick::compareTo);
+        $out = new ASD.Root(bricks);
+    }
     ;
 
-brick returns [ASD.Brick out]
+brick[LinkedList<ASD.Brick> bricks] returns [ASD.Brick out]
     : min=point3d TILDE max=point3d {
-        $out = new ASD.Brick(Bounds3D.from($min.out, $max.out));
+        $bricks.add(new ASD.Brick(Bounds3D.from($min.out, $max.out), $bricks));
     }
     ;
 

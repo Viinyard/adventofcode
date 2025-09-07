@@ -5,29 +5,21 @@ import org.apache.commons.geometry.euclidean.threed.AffineTransformMatrix3D;
 import org.apache.commons.geometry.euclidean.threed.Bounds3D;
 import org.apache.commons.geometry.euclidean.threed.Vector3D;
 
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 public class ASD {
 
     public static class Root {
 
-        private List<Brick> bricks;
+        private LinkedList<Brick> bricks;
 
-        public Root(List<Brick> bricks) {
+        public Root(LinkedList<Brick> bricks) {
             this.bricks = bricks;
         }
 
         public long fall() {
-            bricks.sort(Brick::compareTo);
-            bricks.forEach(b -> b.setOthers(bricks));
             bricks.forEach(Brick::fall);
-
-            bricks.forEach(Brick::setSupportingBricks);
-            bricks.forEach(Brick::setSupportedByBricks);
-            bricks.forEach(Brick::setFallingOnBricks);
-
             return bricks.stream().filter(b -> b.getFallingOnBricks().isEmpty()).count();
         }
     }
@@ -37,46 +29,35 @@ public class ASD {
         @Getter
         private Bounds3D bounds;
 
-        private List<Brick> others;
+        private LinkedList<Brick> bricks;
 
-        @Getter
-        private List<Brick> supportedByBricks;
-
-        @Getter
-        private List<Brick> supportingBricks;
-
-        private Map<Double, List<Bounds3D>> bricksByTopZ;
-
-        private Map<Double, List<Bounds3D>> bricksByBottomZ;
-
-        @Getter
-        private List<Brick> fallingOnBricks;
-
-        public void setOthers(List<Brick> bricks) {
-            this.others = new ArrayList<>(bricks);
-            this.others.remove(this);
+        public List<Brick> getOthers() {
+            LinkedList<Brick> others = new LinkedList<>(bricks);
+            others.remove(this);
+            return others;
         }
 
-        public void setSupportingBricks() {
+        public List<Brick> getSupportingBricks() {
             AffineTransformMatrix3D up = AffineTransformMatrix3D.createTranslation(Vector3D.of(0, 0, +1));
             Bounds3D moved = Bounds3D.from(up.apply(bounds.getMin()), up.apply(bounds.getMax()));
-            this.supportingBricks = others.stream().filter(b -> moved.intersects(b.bounds)).toList();
+            return getOthers().stream().filter(b -> moved.intersects(b.bounds)).toList();
         }
 
-        public void setSupportedByBricks() {
+        public List<Brick> getSupportedByBricks() {
             AffineTransformMatrix3D down = AffineTransformMatrix3D.createTranslation(Vector3D.of(0, 0, -1));
             Bounds3D moved = Bounds3D.from(down.apply(bounds.getMin()), down.apply(bounds.getMax()));
-            this.supportedByBricks = others.stream().filter(b -> moved.intersects(b.bounds)).toList();
+            return getOthers().stream().filter(b -> moved.intersects(b.bounds)).toList();
         }
 
-        public void setFallingOnBricks() {
-            this.fallingOnBricks = supportingBricks.stream()
+        public List<Brick> getFallingOnBricks() {
+            return getSupportingBricks().stream()
                     .filter(s -> s.getSupportedByBricks().stream().allMatch(this::equals))
                     .toList();
         }
 
-        public Brick(Bounds3D bounds) {
+        public Brick(Bounds3D bounds, LinkedList<Brick> bricks) {
             this.bounds = bounds;
+            this.bricks = bricks;
         }
 
         public boolean intersects(Brick other) {
@@ -89,13 +70,14 @@ public class ASD {
                     bounds.getMax()
             );
 
-            return others.stream().map(Brick::getBounds).filter(moved::intersects)
-                    .map(Bounds3D::getMax).mapToDouble(Vector3D::getZ).map(d -> d + 1).max().orElse(1) - bounds.getMin().getZ();
+            return getOthers().stream().map(Brick::getBounds).filter(moved::intersects)
+                    .map(Bounds3D::getMax).mapToDouble(Vector3D::getZ).max().orElse(0) - bounds.getMin().getZ() + 1;
         }
 
         public void fall() {
             AffineTransformMatrix3D fall = AffineTransformMatrix3D.createTranslation(Vector3D.of(0, 0, getFallDistance()));
             bounds = Bounds3D.from(fall.apply(bounds.getMin()), fall.apply(bounds.getMax()));
+            System.out.println("%s fall %s steps".formatted(this, getFallDistance()));
         }
 
         @Override
