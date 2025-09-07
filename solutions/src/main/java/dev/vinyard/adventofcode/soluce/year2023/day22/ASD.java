@@ -7,8 +7,11 @@ import org.apache.commons.geometry.euclidean.threed.AffineTransformMatrix3D;
 import org.apache.commons.geometry.euclidean.threed.Bounds3D;
 import org.apache.commons.geometry.euclidean.threed.Vector3D;
 
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class ASD {
 
@@ -23,6 +26,15 @@ public class ASD {
         public long fall() {
             bricks.forEach(Brick::fall);
             return bricks.stream().filter(b -> b.getFallingOnBricks().isEmpty()).count();
+        }
+
+        public Long part2() {
+            bricks.forEach(Brick::fall);
+            return bricks.stream().mapToLong(b -> {
+                Set<Brick> brickSet = new HashSet<>();
+                brickSet.add(b);
+                return b.getAllFallingOnBricks(brickSet).size();
+            }).sum();
         }
     }
 
@@ -99,6 +111,14 @@ public class ASD {
             return getSupportingBricks().stream()
                     .filter(s -> s.getSupportedByBricks().stream().allMatch(this::equals))
                     .toList();
+        }
+
+        public Set<Brick> getAllFallingOnBricks(Set<Brick> bricks) {
+            Set<Brick> supportingBricks = new HashSet<>(getSupportingBricks());
+            Set<Brick> fallingOnBricks = supportingBricks.stream().filter(s -> bricks.containsAll(s.getSupportedByBricks())).collect(Collectors.toSet());
+            bricks.addAll(fallingOnBricks);
+            fallingOnBricks.addAll(fallingOnBricks.stream().map(b -> b.getAllFallingOnBricks(bricks)).flatMap(Set::stream).collect(Collectors.toSet()));
+            return fallingOnBricks;
         }
 
         public Brick(Bounds3D bounds, LinkedList<Brick> bricks) {
