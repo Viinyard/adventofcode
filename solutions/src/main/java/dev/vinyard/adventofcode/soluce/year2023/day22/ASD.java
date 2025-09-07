@@ -1,5 +1,7 @@
 package dev.vinyard.adventofcode.soluce.year2023.day22;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.Getter;
 import org.apache.commons.geometry.euclidean.threed.AffineTransformMatrix3D;
 import org.apache.commons.geometry.euclidean.threed.Bounds3D;
@@ -21,6 +23,50 @@ public class ASD {
         public long fall() {
             bricks.forEach(Brick::fall);
             return bricks.stream().filter(b -> b.getFallingOnBricks().isEmpty()).count();
+        }
+    }
+
+    // Classe proxy pour Brick avec cache Caffeine
+    public static class BrickProxy extends Brick {
+        private final Cache<String, List<Brick>> othersCache;
+        private final Cache<String, List<Brick>> supportingBricksCache;
+        private final Cache<String, List<Brick>> supportedByBricksCache;
+        private final Cache<String, List<Brick>> fallingOnBricksCache;
+        private final Cache<String, Double> fallDistanceCache;
+
+        public BrickProxy(Bounds3D bounds, LinkedList<Brick> bricks) {
+            super(bounds, bricks);
+
+            this.othersCache = Caffeine.newBuilder().build();
+            this.supportingBricksCache = Caffeine.newBuilder().build();
+            this.supportedByBricksCache = Caffeine.newBuilder().build();
+            this.fallingOnBricksCache = Caffeine.newBuilder().build();
+            this.fallDistanceCache = Caffeine.newBuilder().build();
+        }
+
+        @Override
+        public List<Brick> getOthers() {
+            return othersCache.get("others", k -> super.getOthers());
+        }
+
+        @Override
+        public List<Brick> getSupportingBricks() {
+            return supportingBricksCache.get("supporting", k -> super.getSupportingBricks());
+        }
+
+        @Override
+        public List<Brick> getSupportedByBricks() {
+            return supportedByBricksCache.get("supportedBy", k -> super.getSupportedByBricks());
+        }
+
+        @Override
+        public List<Brick> getFallingOnBricks() {
+            return fallingOnBricksCache.get("fallingOn", k -> super.getFallingOnBricks());
+        }
+
+        @Override
+        public double getFallDistance() {
+            return fallDistanceCache.get("fallDistance", k -> super.getFallDistance());
         }
     }
 
@@ -77,7 +123,7 @@ public class ASD {
         public void fall() {
             AffineTransformMatrix3D fall = AffineTransformMatrix3D.createTranslation(Vector3D.of(0, 0, getFallDistance()));
             bounds = Bounds3D.from(fall.apply(bounds.getMin()), fall.apply(bounds.getMax()));
-            System.out.println("%s fall %s steps".formatted(this, getFallDistance()));
+//            System.out.println("%s fall %s steps".formatted(this, getFallDistance()));
         }
 
         @Override

@@ -22,7 +22,7 @@ root returns [ASD.Root out]
 
 brick[LinkedList<ASD.Brick> bricks] returns [ASD.Brick out]
     : min=point3d TILDE max=point3d {
-        $bricks.add(new ASD.Brick(Bounds3D.from($min.out, $max.out), $bricks));
+        $bricks.add(new ASD.BrickProxy(Bounds3D.from($min.out, $max.out), $bricks));
     }
     ;
 
