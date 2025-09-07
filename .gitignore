@@ -42,3 +42,5 @@ BluePrinter/plugins/*.jar
 
 ### BluePrinter ###
 BluePrinter/plugins/*.jar
+/log/blueprinter-cli.log
+/blueprinter-runner.log
