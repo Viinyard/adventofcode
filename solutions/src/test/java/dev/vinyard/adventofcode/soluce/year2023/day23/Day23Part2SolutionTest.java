@@ -6,18 +6,18 @@ import org.junit.jupiter.params.provider.Arguments;
 
 import java.util.stream.Stream;
 
-public class Day23Part1SolutionTest extends BaseTest<Long> {
+public class Day23Part2SolutionTest extends BaseTest<Long> {
 
     @Override
     public Solution<Long> getSolution() {
-        return new Day23Part1Solution();
+        return new Day23Part2Solution();
     }
 
     @Override
     public Stream<Arguments> testSolution() {
         return Stream.of(
-            Arguments.of("soluce/year2023/day23/test.txt", 94L, null, null),
-            Arguments.of("soluce/year2023/day23/input.txt", 2114L, null, null)
+            Arguments.of("soluce/year2023/day23/test.txt", 154L, null, null),
+            Arguments.of("soluce/year2023/day23/input.txt", 6322L, null, null)
         );
     }
 }

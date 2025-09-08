@@ -3,13 +3,15 @@ package dev.vinyard.adventofcode.soluce.year2023.day23;
 import org.jgrapht.Graph;
 import org.jgrapht.GraphPath;
 import org.jgrapht.alg.shortestpath.AllDirectedPaths;
-import org.jgrapht.graph.DefaultEdge;
+import org.jgrapht.graph.DefaultWeightedEdge;
 import org.jgrapht.graph.builder.GraphTypeBuilder;
 
 import java.awt.*;
 import java.awt.geom.AffineTransform;
-import java.util.Arrays;
+import java.util.*;
 import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class ASD {
@@ -22,8 +24,12 @@ public class ASD {
             this.grid = grid;
         }
 
-        public long findLongestPath() {
-            return grid.findLongestPath();
+        public long findLongestPathPart1() {
+            return grid.findLongestPathPart1();
+        }
+
+        public Long findLongestPathPart2() {
+            return grid.findLongestPathPart2();
         }
     }
 
@@ -47,35 +53,80 @@ public class ASD {
             return null;
         }
 
-        private static Graph<Cell, DefaultEdge> createEmptyGraph() {
-            return GraphTypeBuilder.<Cell, DefaultEdge>directed()
+        private static Graph<Cell, DefaultWeightedEdge> createEmptyGraph() {
+            return GraphTypeBuilder.<Cell, DefaultWeightedEdge>directed()
                     .allowingMultipleEdges(false)
                     .allowingSelfLoops(false)
-                    .edgeClass(DefaultEdge.class)
+                    .edgeClass(DefaultWeightedEdge.class)
                     .weighted(true)
                     .buildGraph();
         }
 
-        private Graph<Cell, DefaultEdge> buildGraph() {
-            Graph<Cell, DefaultEdge> graph = createEmptyGraph();
+        private Graph<Cell, DefaultWeightedEdge> buildGraph(Function<Cell, List<Cell>> getNeighbours) {
+            Graph<Cell, DefaultWeightedEdge> graph = createEmptyGraph();
 
-            this.cells.forEach(graph::addVertex);
+            Set<Cell> vertices = this.cells.stream().filter(Path.class::isInstance).filter(cell -> cell.getNeighbours(this).size() != 2).collect(Collectors.toSet());
 
-            this.cells.forEach(cell -> cell.getNeighbours(this).forEach(n -> {
-                DefaultEdge defaultEdge = graph.addEdge(cell, n);
-                graph.setEdgeWeight(defaultEdge, 1);
-            }));
+            vertices.forEach(graph::addVertex);
+
+            for (Cell from : vertices) {
+                for (Cell neighbour : getNeighbours.apply(from)) {
+                    Node to = getPathLengthToNextIntersection(new Node(neighbour, 1), new HashSet<>(Set.of(from)), getNeighbours);
+                    if (Objects.nonNull(to)) {
+                        DefaultWeightedEdge defaultWeightedEdge = graph.addEdge(from, to.cell);
+                        graph.setEdgeWeight(defaultWeightedEdge, to.length);
+                    }
+                }
+            }
 
             return graph;
         }
 
-        private long findLongestPath() {
+        public Node getPathLengthToNextIntersection(Node node, Set<Cell> visited, Function<Cell, List<Cell>> getNeighbours) {
+            Cell current = node.cell;
+            visited.add(current);
+
+            List<Cell> neighbours = getNeighbours.apply(current).stream().filter(n -> !visited.contains(n)).toList();
+
+            if (neighbours.isEmpty()) {
+                if (current instanceof Path)
+                    return node;
+            } else if (neighbours.size() > 1) {
+                return node;
+            } else {
+                return getPathLengthToNextIntersection(new Node(neighbours.getFirst(), node.length + 1), visited, getNeighbours);
+            }
+
+            return null;
+        }
+
+        public record Node(Cell cell, long length) {}
+
+        private long findLongestPathPart1() {
             Cell start = this.cells.get(1);
             Cell end = this.cells.get(this.cells.size() - 2);
 
-            AllDirectedPaths<Cell, DefaultEdge> allDirectedPaths = new AllDirectedPaths<>(buildGraph());
+            AllDirectedPaths<Cell, DefaultWeightedEdge> allDirectedPaths = new AllDirectedPaths<>(buildGraph(n -> n.getNeighbours(this)));
 
-            return allDirectedPaths.getAllPaths(start, end, true, null).stream().mapToLong(GraphPath::getLength).max().orElseThrow();
+            return (long) allDirectedPaths.getAllPaths(start, end, true, null).stream().mapToDouble(GraphPath::getWeight).max().orElseThrow();
+        }
+
+        protected List<Cell> getNeighbours(Cell cell) {
+            return Arrays.stream(Direction.values())
+                    .map(d -> d.move(cell.position))
+                    .filter(this.bounds::contains)
+                    .map(this::getCellAt)
+                    .filter(e -> !(e instanceof Forest))
+                    .toList();
+        }
+
+        private long findLongestPathPart2() {
+            Cell start = this.cells.get(1);
+            Cell end = this.cells.get(this.cells.size() - 2);
+
+            AllDirectedPaths<Cell, DefaultWeightedEdge> allDirectedPaths = new AllDirectedPaths<>(buildGraph(this::getNeighbours));
+
+            return (long) allDirectedPaths.getAllPaths(start, end, true, null).stream().mapToDouble(GraphPath::getWeight).max().orElseThrow();
         }
     }
 
@@ -95,7 +146,10 @@ public class ASD {
                     .toList();
         }
 
-
+        @Override
+        public String toString() {
+            return position.toString();
+        }
     }
 
     public static class Path extends Cell {

@@ -81,6 +81,6 @@ public class Day23Part1Solution implements Solution<Long> {
 
         ASD.Root root = parser.root().out;
 
-        return root.findLongestPath();
+        return root.findLongestPathPart1();
     }
 }
