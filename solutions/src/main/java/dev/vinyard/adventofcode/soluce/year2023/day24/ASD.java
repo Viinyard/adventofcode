@@ -145,7 +145,7 @@ public class ASD {
             }
 
 
-            return new Position(-xr, -yr, -zr);
+            return new Position(xr, yr, zr);
         }
 
         private void setupEquations(Hail h1, Hail h2, int startRow, double[][] matrix, double[] vector) {
@@ -156,11 +156,11 @@ public class ASD {
             // (xr - x2) * (vy2 - vyr) - (yr - y2) * (vx2 - vxr) = 0
             // En soustrayant ces équations, on obtient une équation linéaire
 
-            matrix[startRow][0] = h2.velocity().y - h1.velocity().y; // coefficient de xr
-            matrix[startRow][1] = h1.velocity().x - h2.velocity().x; // coefficient de yr
+            matrix[startRow][0] = h1.velocity().y - h2.velocity().y; // coefficient de xr
+            matrix[startRow][1] = h2.velocity().x - h1.velocity().x; // coefficient de yr
             matrix[startRow][2] = 0;                                 // coefficient de zr
-            matrix[startRow][3] = h1.position().y - h2.position().y; // coefficient de vxr
-            matrix[startRow][4] = h2.position().x - h1.position().x; // coefficient de vyr
+            matrix[startRow][3] = h2.position().y - h1.position().y; // coefficient de vxr
+            matrix[startRow][4] = h1.position().x - h2.position().x; // coefficient de vyr
             matrix[startRow][5] = 0;                                 // coefficient de vzr
 
             vector[startRow] = h1.position().x * h1.velocity().y - h1.position().y * h1.velocity().x
@@ -172,11 +172,11 @@ public class ASD {
             // En soustrayant ces équations, on obtient une équation linéaire
 
             matrix[startRow+1][0] = 0;                                 // coefficient de xr
-            matrix[startRow+1][1] = h2.velocity().z - h1.velocity().z; // coefficient de yr
-            matrix[startRow+1][2] = h1.velocity().y - h2.velocity().y; // coefficient de zr
+            matrix[startRow+1][1] = h1.velocity().z - h2.velocity().z; // coefficient de yr
+            matrix[startRow+1][2] = h2.velocity().y - h1.velocity().y; // coefficient de zr
             matrix[startRow+1][3] = 0;                                 // coefficient de vxr
-            matrix[startRow+1][4] = h1.position().z - h2.position().z; // coefficient de vyr
-            matrix[startRow+1][5] = h2.position().y - h1.position().y; // coefficient de vzr
+            matrix[startRow+1][4] = h2.position().z - h1.position().z; // coefficient de vyr
+            matrix[startRow+1][5] = h1.position().y - h2.position().y; // coefficient de vzr
 
             vector[startRow+1] = h1.position().y * h1.velocity().z - h1.position().z * h1.velocity().y
                     - h2.position().y * h2.velocity().z + h2.position().z * h2.velocity().y;
