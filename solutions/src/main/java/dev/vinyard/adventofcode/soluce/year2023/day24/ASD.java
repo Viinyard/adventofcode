@@ -1,8 +1,10 @@
 package dev.vinyard.adventofcode.soluce.year2023.day24;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.math3.linear.*;
 
 import java.util.List;
+import java.util.stream.IntStream;
 
 public class ASD {
 
@@ -16,170 +18,106 @@ public class ASD {
         }
 
         public Long getCollisionsCountInBounds() {
-            long count = 0;
-
-            for (int i = 0; i < hails.size(); i++) {
-                for (int j = i + 1; j < hails.size(); j++) {
-                    Hail first = hails.get(i);
-                    Hail second = hails.get(j);
-
-                    if (getHailCollisionPosition(first, second)) {
-                        count++;
-                    }
-                }
-            }
-
-            return count;
+            return IntStream.range(0, hails.size()).boxed()
+                    .flatMap(i -> IntStream.range(i + 1, hails.size()).mapToObj(j -> Pair.of(hails.get(i), hails.get(j))))
+                    .filter(this::getHailCollisionPosition)
+                    .count();
         }
 
         public Long findRockPositionScore() {
             Position rockPosition = findRockPosition(hails);
-            System.out.println("%s, %s, %s".formatted(rockPosition.x, rockPosition.y, rockPosition.z));
             return (long) (rockPosition.x + rockPosition.y + rockPosition.z);
         }
 
-        public boolean getHailCollisionPosition(Hail first, Hail second) {
-            double a1 = first.a();
-            double b1 = first.b();
-            double c1 = first.c();
+        public boolean getHailCollisionPosition(Pair<Hail, Hail> pair) {
+            Hail h1 = pair.getLeft();
+            Hail h2 = pair.getRight();
 
-            double a2 = second.a();
-            double b2 = second.b();
-            double c2 = second.c();
+            double a1 = h1.a();
+            double b1 = h1.b();
+            double c1 = h1.c();
 
-            if (a1 * b2 == a2 * b1)
-                return false; // Parallel lines
+            double a2 = h2.a();
+            double b2 = h2.b();
+            double c2 = h2.c();
+
+            if (a1 * b2 == a2 * b1) return false; // Parallel lines
 
             double x = (c1 * b2 - c2 * b1) / (a1 * b2 - a2 * b1);
             double y = (c1 * a2 - c2 * a1) / (a2 * b1 - a1 * b2);
 
-            if (first.velocity.x * (x - first.position.x) < 0 || first.velocity.y * (y - first.position.y) < 0)
+            if (h1.velocity.x * (x - h1.position.x) < 0 || h1.velocity.y * (y - h1.position.y) < 0)
                 return false; // In the past
 
-            if (second.velocity.x * (x - second.position.x) < 0 || second.velocity.y * (y - second.position.y) < 0)
+            if (h2.velocity.x * (x - h2.position.x) < 0 || h2.velocity.y * (y - h2.position.y) < 0)
                 return false; // In the past
 
             return bounds.contains(x) && bounds.contains(y);
         }
 
         public Position findRockPosition(List<Hail> hails) {
-            // Nous avons besoin d'au moins 4 grêlons pour résoudre complètement (6 inconnues)
-            if (hails.size() < 4) {
-                throw new IllegalArgumentException("Au moins 4 grêlons sont nécessaires");
-            }
+            if (hails.size() < 4)
+                throw new IllegalArgumentException("At least 3 hailstones are required to determine the rock's position and velocity.");
 
-            // Construire un système avec 6 équations pour 6 inconnues (xr, yr, zr, vxr, vyr, vzr)
+            // Building a system with 6 equations for 6 unknowns (xr, yr, zr, vxr, vyr, vzr)
             double[][] matrixData = new double[6][6];
             double[] vectorData = new double[6];
 
-            // Utilisons 3 paires de grêlons pour construire notre système
+            // Use the first three pairs of hailstones to build our system
             Hail h0 = hails.get(0);
             Hail h1 = hails.get(1);
             Hail h2 = hails.get(2);
             Hail h3 = hails.get(3);
 
-            // Pour chaque paire de grêlons, nous créons 2 équations
-            // Premier hailstone - équations de collision en x,y
-            setupEquations(h0, h1, 0, matrixData, vectorData);
+            setupEquations(Pair.of(h0, h1), 0, matrixData, vectorData);
+            setupEquations(Pair.of(h1, h2), 2, matrixData, vectorData);
+            setupEquations(Pair.of(h2, h3), 4, matrixData, vectorData);
 
-            // Deuxième paire - équations de collision en y,z
-            setupEquations(h1, h2, 2, matrixData, vectorData);
-
-            // Troisième paire - équations en x,z
-            setupEquations(h2, h3, 4, matrixData, vectorData);
-
-            // Résoudre le système avec Commons Math
+            // Solving the system using Apache Commons Math
             RealMatrix coefficients = new Array2DRowRealMatrix(matrixData, false);
             DecompositionSolver solver = new LUDecomposition(coefficients).getSolver();
-
-            if (!solver.isNonSingular()) {
-                throw new IllegalStateException("Le système n'a pas de solution unique");
-            }
 
             RealVector constants = new ArrayRealVector(vectorData, false);
             RealVector solution = solver.solve(constants);
 
-            // Extraire la position de la solution
-            double xr = solution.getEntry(0);
-            double yr = solution.getEntry(1);
-            double zr = solution.getEntry(2);
-            double vxr = solution.getEntry(3);
-            double vyr = solution.getEntry(4);
-            double vzr = solution.getEntry(5);
-
-
-            // Vérification avec un 5ème grêlon si disponible
-            if (hails.size() > 4) {
-                Hail h4 = hails.get(4);
-
-                // Calculer le temps d'intersection
-                double tx = Double.NaN;
-                double ty = Double.NaN;
-                double tz = Double.NaN;
-
-                if (vxr != h4.velocity().x) {
-                    tx = (h4.position().x - xr) / (vxr - h4.velocity().x);
-                }
-
-                if (vyr != h4.velocity().y) {
-                    ty = (h4.position().y - yr) / (vyr - h4.velocity().y);
-                }
-
-                if (vzr != h4.velocity().z) {
-                    tz = (h4.position().z - zr) / (vzr - h4.velocity().z);
-                }
-
-                System.out.println("Vérification avec le 5ème grêlon - temps: tx=" + tx + ", ty=" + ty + ", tz=" + tz);
-
-                // Vérifier que les points d'intersection correspondent
-                double x5 = xr + vxr * tx;
-                double y5 = yr + vyr * ty;
-                double z5 = zr + vzr * tz;
-
-                double x5_hail = h4.position().x + h4.velocity().x * tx;
-                double y5_hail = h4.position().y + h4.velocity().y * ty;
-                double z5_hail = h4.position().z + h4.velocity().z * tz;
-
-                System.out.println("Position calculée du point d'intersection: " + x5 + ", " + y5 + ", " + z5);
-                System.out.println("Position attendue du point d'intersection: " + x5_hail + ", " + y5_hail + ", " + z5_hail);
-            }
-
+            double xr = Math.round(solution.getEntry(0));
+            double yr = Math.round(solution.getEntry(1));
+            double zr = Math.round(solution.getEntry(2));
 
             return new Position(xr, yr, zr);
         }
 
-        private void setupEquations(Hail h1, Hail h2, int startRow, double[][] matrix, double[] vector) {
-            // Pour la paire de hailstones h1 et h2, nous créons 2 équations
+        private void setupEquations(Pair<Hail, Hail> pair, int startRow, double[][] matrix, double[] vector) {
+            Hail h1 = pair.getLeft();
+            Hail h2 = pair.getRight();
 
-            // Équation 1: basée sur le plan formé par les trajectoires en x,y
+            // For the pair of hailstones h1 and h2, we create 2 equations
+
+            // Equation 1: based on the plane formed by the trajectories in x,y
             // (xr - x1) * (vy1 - vyr) - (yr - y1) * (vx1 - vxr) = 0
             // (xr - x2) * (vy2 - vyr) - (yr - y2) * (vx2 - vxr) = 0
-            // En soustrayant ces équations, on obtient une équation linéaire
+            // By subtracting these equations, we get a linear equation
+            matrix[startRow][0] = h1.velocity().y - h2.velocity().y; // coefficient of xr
+            matrix[startRow][1] = h2.velocity().x - h1.velocity().x; // coefficient of yr
+            matrix[startRow][2] = 0;                                 // coefficient of zr
+            matrix[startRow][3] = h2.position().y - h1.position().y; // coefficient of vxr
+            matrix[startRow][4] = h1.position().x - h2.position().x; // coefficient of vyr
+            matrix[startRow][5] = 0;                                 // coefficient of vzr
 
-            matrix[startRow][0] = h1.velocity().y - h2.velocity().y; // coefficient de xr
-            matrix[startRow][1] = h2.velocity().x - h1.velocity().x; // coefficient de yr
-            matrix[startRow][2] = 0;                                 // coefficient de zr
-            matrix[startRow][3] = h2.position().y - h1.position().y; // coefficient de vxr
-            matrix[startRow][4] = h1.position().x - h2.position().x; // coefficient de vyr
-            matrix[startRow][5] = 0;                                 // coefficient de vzr
+            vector[startRow] = h1.position().x * h1.velocity().y - h1.position().y * h1.velocity().x - h2.position().x * h2.velocity().y + h2.position().y * h2.velocity().x;
 
-            vector[startRow] = h1.position().x * h1.velocity().y - h1.position().y * h1.velocity().x
-                    - h2.position().x * h2.velocity().y + h2.position().y * h2.velocity().x;
-
-            // Équation 2: basée sur le plan formé par les trajectoires en y,z
+            // Equation 2: based on the plane formed by the trajectories in y,z
             // (yr - y1) * (vz1 - vzr) - (zr - z1) * (vy1 - vyr) = 0
             // (yr - y2) * (vz2 - vzr) - (zr - z2) * (vy2 - vyr) = 0
-            // En soustrayant ces équations, on obtient une équation linéaire
+            // By subtracting these equations, we get a linear equation
+            matrix[startRow + 1][0] = 0;                                 // coefficient of xr
+            matrix[startRow + 1][1] = h1.velocity().z - h2.velocity().z; // coefficient of yr
+            matrix[startRow + 1][2] = h2.velocity().y - h1.velocity().y; // coefficient of zr
+            matrix[startRow + 1][3] = 0;                                 // coefficient of vxr
+            matrix[startRow + 1][4] = h2.position().z - h1.position().z; // coefficient of vyr
+            matrix[startRow + 1][5] = h1.position().y - h2.position().y; // coefficient of vzr
 
-            matrix[startRow+1][0] = 0;                                 // coefficient de xr
-            matrix[startRow+1][1] = h1.velocity().z - h2.velocity().z; // coefficient de yr
-            matrix[startRow+1][2] = h2.velocity().y - h1.velocity().y; // coefficient de zr
-            matrix[startRow+1][3] = 0;                                 // coefficient de vxr
-            matrix[startRow+1][4] = h2.position().z - h1.position().z; // coefficient de vyr
-            matrix[startRow+1][5] = h1.position().y - h2.position().y; // coefficient de vzr
-
-            vector[startRow+1] = h1.position().y * h1.velocity().z - h1.position().z * h1.velocity().y
-                    - h2.position().y * h2.velocity().z + h2.position().z * h2.velocity().y;
+            vector[startRow + 1] = h1.position().y * h1.velocity().z - h1.position().z * h1.velocity().y - h2.position().y * h2.velocity().z + h2.position().z * h2.velocity().y;
         }
 
     }
@@ -203,23 +141,12 @@ public class ASD {
         public double c() {
             return velocity.x * position.y - velocity.y * position.x;
         }
+    }
 
-        @Override
-        public String toString() {
-            return "%s @ %s".formatted(position, velocity);
-        }
-    }
     public record Position(double x, double y, double z) {
-        @Override
-        public String toString() {
-            return "%s, %s, %s".formatted(x, y, z);
-        }
     }
+
     public record Velocity(double x, double y, double z) {
-        @Override
-        public String toString() {
-            return "%s, %s, %s".formatted(x, y, z);
-        }
     }
 
 }
