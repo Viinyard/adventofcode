@@ -34,9 +34,9 @@ public class ASD {
         public List<DefaultEdge> findStrongestConnections(Graph<String, DefaultEdge> graph) {
             EdgeBetweennessCentrality<String, DefaultEdge> edgeBetweennessCentrality = new EdgeBetweennessCentrality<>(graph);
 
-            return graph.edgeSet().stream().sorted(Comparator.comparingDouble(edgeBetweennessCentrality::getEdgeScore).reversed())
-                    .limit(3)
-                    .toList();
+            return edgeBetweennessCentrality.getScores().entrySet().stream()
+                    .sorted((e1, e2) -> Double.compare(e2.getValue(), e1.getValue()))
+                    .limit(3).map(Map.Entry::getKey).toList();
         }
 
         public long getBlockProductOfGraph() {
@@ -44,7 +44,6 @@ public class ASD {
             findStrongestConnections(graph).forEach(graph::removeEdge);
 
             ConnectivityInspector<String, DefaultEdge> inspector = new ConnectivityInspector<>(graph);
-
             List<Set<String>> connectedComponents = inspector.connectedSets();
 
             return connectedComponents.stream()
