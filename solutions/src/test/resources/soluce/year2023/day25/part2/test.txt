@@ -1,0 +1,6 @@
+    System overload resolved!
+Power required is now 50 stars.
+    Power required is now 49 stars.
+
+Please supply the necessary stars and
+push the button to restart the system.
