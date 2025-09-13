@@ -8,7 +8,7 @@ Solutions to the [Advent of Code](https://adventofcode.com/) problem sets.
 ---
 
 $aocSolutions.classLoader(${path}) $aocSolutions.year("2022") #set($solutions = $aocSolutions.getSolutions())
-![Static Badge](https://img.shields.io/badge/aoc-2023-yellow?style=for-the-badge&logo=adventofcode&label=$solutions.size())
+![Static Badge](https://img.shields.io/badge/aoc-2022-yellow?style=for-the-badge&logo=adventofcode&label=$solutions.size())
 
 #set($total = 0)
 | Year | Day | Part | Name | Code | Test | Result | Time (ms) |
@@ -23,7 +23,7 @@ Solved $solutions.size() solutions in $aocSolutions.nanoToSeconds($total) second
 
 ---
 
-$aocSolutions.classLoader(${path}) $aocSolutions.year("2023") #set($solutions = $aocSolutions.getSolutions())
+$aocSolutions.reset() $aocSolutions.classLoader(${path}) $aocSolutions.year("2023") #set($solutions = $aocSolutions.getSolutions())
 ![Static Badge](https://img.shields.io/badge/aoc-2023-yellow?style=for-the-badge&logo=adventofcode&label=$solutions.size())
 
 #set($total = 0)
