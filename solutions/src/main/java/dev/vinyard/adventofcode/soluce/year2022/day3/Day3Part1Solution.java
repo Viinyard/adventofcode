@@ -48,8 +48,8 @@ public class Day3Part1Solution implements Solution<Long> {
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         SolutionParser parser = new SolutionParser(tokens);
 
-        ASD.Root root = parser.root().out;
+        ASD.Part1 root = parser.part1().out;
 
-        return root.part1();
+        return root.result();
     }
 }

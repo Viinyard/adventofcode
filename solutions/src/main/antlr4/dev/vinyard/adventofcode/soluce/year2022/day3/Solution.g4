@@ -8,12 +8,32 @@ options {
 
 }
 
-root returns [ASD.Root out]
+part2 returns [ASD.Part2 out]
+    @init {
+        List<ASD.Group> groups = new ArrayList<>();
+    }
+    : group[groups]+ NEWLINE* EOF {
+        $out = new ASD.Part2(groups);
+    }
+    ;
+
+part1 returns [ASD.Part1 out]
     @init {
         List<ASD.Rucksack> rucksacks = new ArrayList<>();
     }
     : rucksack[rucksacks]+ EOF {
-        $out = new ASD.Root(rucksacks);
+        $out = new ASD.Part1(rucksacks);
+    }
+    ;
+
+
+
+group [List<ASD.Group> groups]
+    @init {
+        List<ASD.Rucksack> rucksacks = new ArrayList<>();
+    }
+    : rucksack[rucksacks] rucksack[rucksacks] rucksack[rucksacks] {
+        $groups.add(new ASD.Group(rucksacks));
     }
     ;
 
@@ -44,5 +64,5 @@ INT
     ;
 
 WS
-    : [ \t\n\r]+ -> skip
+    : [ \t]+ -> skip
     ;
