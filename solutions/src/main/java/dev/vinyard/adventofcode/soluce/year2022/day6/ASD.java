@@ -15,10 +15,20 @@ public class ASD {
         }
 
         public long findStartOfPacket() {
-            Buffer buffer = new Buffer();
+            Buffer buffer = new Buffer(4);
 
 
-            while (!buffer.isStartOfPacket()) {
+            while (!buffer.isStart()) {
+                buffer.add(this.datastream.removeFirst());
+            }
+
+            return buffer.getIndex();
+        }
+
+        public long findStartOfMessage() {
+            Buffer buffer = new Buffer(14);
+
+            while (!buffer.isStart()) {
                 buffer.add(this.datastream.removeFirst());
             }
 
@@ -33,7 +43,10 @@ public class ASD {
         @Getter
         private long index = 0;
 
-        public Buffer() {
+        private final int size;
+
+        public Buffer(int size) {
+            this.size = size;
             this.buffer = new LinkedList<>();
         }
 
@@ -41,14 +54,12 @@ public class ASD {
             this.buffer.addLast(s);
             this.index++;
 
-            while (this.buffer.size() > 4)
+            while (this.buffer.size() > size)
                 this.buffer.removeFirst();
         }
 
-        public boolean isStartOfPacket() {
-            return this.buffer.stream().distinct().count() == 4;
+        public boolean isStart() {
+            return this.buffer.stream().distinct().count() == size;
         }
-
     }
-
 }
