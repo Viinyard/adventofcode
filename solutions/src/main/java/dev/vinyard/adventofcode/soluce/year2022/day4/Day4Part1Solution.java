@@ -61,6 +61,6 @@ public class Day4Part1Solution implements Solution<Long> {
 
         ASD.Root root = parser.root().out;
 
-        return root.result();
+        return root.part1();
     }
 }

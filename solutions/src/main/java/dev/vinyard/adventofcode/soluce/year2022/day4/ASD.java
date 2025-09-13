@@ -14,8 +14,12 @@ public class ASD {
             this.pairs = pairs;
         }
 
-        public long result() {
+        public long part1() {
             return pairs.stream().filter(Pair::contains).count();
+        }
+
+        public long part2() {
+            return pairs.stream().filter(Pair::overlaps).count();
         }
 
     }
@@ -23,6 +27,10 @@ public class ASD {
     public record Pair(Section left, Section right) {
         public boolean contains() {
             return left.contains(right) || right.contains(left);
+        }
+
+        public boolean overlaps() {
+            return left.overlaps(right);
         }
     }
 
@@ -35,6 +43,10 @@ public class ASD {
 
         public boolean contains(Section section) {
             return this.range.containsRange(section.range);
+        }
+
+        public boolean overlaps(Section section) {
+            return this.range.isOverlappedBy(section.range);
         }
     }
 
