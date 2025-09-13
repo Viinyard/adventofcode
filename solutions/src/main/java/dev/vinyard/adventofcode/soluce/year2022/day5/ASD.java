@@ -18,8 +18,12 @@ public class ASD {
         }
 
         public String part1() {
-            moves.forEach(m -> m.process());
+            moves.forEach(Move::process9000);
+            return stacks.values().stream().map(CrateStack::getTopCrate).map(Crate::name).collect(Collectors.joining());
+        }
 
+        public String part2() {
+            moves.forEach(Move::process9001);
             return stacks.values().stream().map(CrateStack::getTopCrate).map(Crate::name).collect(Collectors.joining());
         }
     }
@@ -45,16 +49,17 @@ public class ASD {
                 return null;
             return crates.getLast();
         }
-
-        @Override
-        public String toString() {
-            return  crates.stream().map(Crate::name).collect(Collectors.joining(", "));
-        }
     }
 
     public record Move(int quantity, CrateStack from, CrateStack to) {
-        public void process() {
+        public void process9000() {
             IntStream.range(0, quantity).forEach(i -> to.addLast(from.pollLast()));
+        }
+
+        public void process9001() {
+            LinkedList<Crate> temp = new LinkedList<>();
+            IntStream.range(0, quantity).forEach(i -> temp.addFirst(from.pollLast()));
+            temp.forEach(to::addLast);
         }
     }
 
