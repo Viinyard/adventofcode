@@ -26,6 +26,23 @@ public class ASD {
 
             return folders.stream().filter(f -> f.getSize() <= 100000).mapToLong(Folder::getSize).sum();
         }
+
+        public long part2() {
+            PromptVisitor promptVisitor = new PromptVisitor();
+            commands.forEach(command -> command.accept(promptVisitor));
+
+            Folder root = promptVisitor.getRoot();
+
+            long totalSpace = 70_000_000;
+            long neededSpace = 30_000_000;
+            long usedSpace = root.getSize();
+            long freeSpace = totalSpace - usedSpace;
+            long needToFree = neededSpace - freeSpace;
+
+            Set<Folder> folders = root.getFolders();
+
+            return folders.stream().filter(f -> f.getSize() >= needToFree).mapToLong(Folder::getSize).min().orElseThrow();
+        }
     }
 
     public static class Folder {
@@ -33,7 +50,7 @@ public class ASD {
         private final String name;
 
         @Getter
-        private Folder parent;
+        private final Folder parent;
 
         private final LinkedList<Folder> folders = new LinkedList<>();
         private final LinkedList<File> files = new LinkedList<>();
@@ -69,11 +86,9 @@ public class ASD {
     }
 
     public static class File {
-        private final String name;
         private final long size;
 
         public File(String name, long size) {
-            this.name = name;
             this.size = size;
         }
     }
@@ -81,7 +96,7 @@ public class ASD {
     public static class PromptVisitor {
 
         @Getter
-        private Folder root = new Folder(null, "/");
+        private final Folder root = new Folder(null, "/");
 
         private Folder currentFolder;
 
@@ -104,10 +119,6 @@ public class ASD {
         public void visit(FileCommand fileCommand) {
             currentFolder.addFile(new File(fileCommand.getName(), fileCommand.getSize()));
         }
-
-        public void visit(Command command) {
-            // Default visit method for commands not specifically handled
-        }
     }
 
     public interface CommandVisitor {
@@ -119,14 +130,12 @@ public class ASD {
     }
 
     public static class CdCommand extends Command {
+
+        @Getter
         private final String path;
 
         public CdCommand(String path) {
             this.path = path;
-        }
-
-        public String getPath() {
-            return path;
         }
 
         @Override
@@ -144,20 +153,16 @@ public class ASD {
     }
 
     public static class FileCommand extends Command {
+
+        @Getter
         private final long size;
+
+        @Getter
         private final String name;
 
         public FileCommand(long size, String name) {
             this.size = size;
             this.name = name;
-        }
-
-        public long getSize() {
-            return size;
-        }
-
-        public String getName() {
-            return name;
         }
 
         @Override
@@ -167,14 +172,12 @@ public class ASD {
     }
 
     public static class DirCommand extends Command {
+
+        @Getter
         private final String name;
 
         public DirCommand(String name) {
             this.name = name;
-        }
-
-        public String getName() {
-            return name;
         }
 
         @Override
