@@ -21,7 +21,7 @@ part1 returns [ASD.Part1 out]
     @init {
         List<ASD.Rucksack> rucksacks = new ArrayList<>();
     }
-    : rucksack[rucksacks]+ EOF {
+    : rucksack[rucksacks]+ NEWLINE* EOF {
         $out = new ASD.Part1(rucksacks);
     }
     ;
