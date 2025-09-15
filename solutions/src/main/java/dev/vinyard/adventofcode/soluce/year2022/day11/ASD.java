@@ -23,10 +23,9 @@ public class ASD {
         public long part1() {
             IntStream.range(0, 20).forEach(i -> {;
                 monkeys.forEach(Monkey::round);
-                System.out.println();
             });
 
-            return monkeys.stream().mapToLong(Monkey::getInspectedItems).boxed().sorted((a, b) -> Long.compare(b, a)).limit(2).peek(System.out::println).reduce((a, b) -> a * b).orElseThrow();
+            return monkeys.stream().mapToLong(Monkey::getInspectedItems).boxed().sorted((a, b) -> Long.compare(b, a)).limit(2).reduce((a, b) -> a * b).orElseThrow();
         }
 
         public long part2() {
@@ -37,7 +36,7 @@ public class ASD {
                 monkeys.forEach(Monkey::round);
             });
 
-            return monkeys.stream().mapToLong(Monkey::getInspectedItems).boxed().sorted((a, b) -> Long.compare(b, a)).limit(2).peek(System.out::println).reduce((a, b) -> a * b).orElseThrow();
+            return monkeys.stream().mapToLong(Monkey::getInspectedItems).boxed().sorted((a, b) -> Long.compare(b, a)).limit(2).reduce((a, b) -> a * b).orElseThrow();
         }
     }
 

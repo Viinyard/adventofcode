@@ -16,7 +16,13 @@ $aocSolutions.classLoader(${path}) $aocSolutions.year("2022") #set($solutions = 
 #foreach ($solution in $solutions)
     #set($nanos = $solution.getStatistics(5).getMin())
     #set($total = $total + $nanos)
-| $solution.getYear() | $solution.getDay() | $solution.getPart() | [$solution.getDescription()]($solution.getLink()) | [Code](${SRC}/${PACKAGE}/soluce/year${solution.getYear()}/day${solution.getDay()}/Day${solution.getDay()}Part${solution.getPart()}Solution.java) | [Test](${TEST_SRC}/${PACKAGE}/soluce/year${solution.getYear()}/day${solution.getDay()}/Day${solution.getDay()}Part${solution.getPart()}SolutionTest.java) | $solution.getResult() | $aocSolutions.nanoToMillis($nanos) |
+    #set($result = $solution.getResult())
+    #if($result)
+        #set($displayResult = $result.toString().replaceAll('\n', '<br>'))
+    #else
+        #set($displayResult = 'null')
+    #end
+| $solution.getYear() | $solution.getDay() | $solution.getPart() | [$solution.getDescription()]($solution.getLink()) | [Code](${SRC}/${PACKAGE}/soluce/year${solution.getYear()}/day${solution.getDay()}/Day${solution.getDay()}Part${solution.getPart()}Solution.java) | [Test](${TEST_SRC}/${PACKAGE}/soluce/year${solution.getYear()}/day${solution.getDay()}/Day${solution.getDay()}Part${solution.getPart()}SolutionTest.java) | $displayResult | $aocSolutions.nanoToMillis($nanos) |
 #end
 
 Solved $solutions.size() solutions in $aocSolutions.nanoToSeconds($total) seconds.
@@ -32,7 +38,13 @@ $aocSolutions.reset() $aocSolutions.classLoader(${path}) $aocSolutions.year("202
 #foreach ($solution in $solutions)
     #set($nanos = $solution.getStatistics(5).getMin())
     #set($total = $total + $nanos)
-| $solution.getYear() | $solution.getDay() | $solution.getPart() | [$solution.getDescription()]($solution.getLink()) | [Code](${SRC}/${PACKAGE}/soluce/year${solution.getYear()}/day${solution.getDay()}/Day${solution.getDay()}Part${solution.getPart()}Solution.java) | [Test](${TEST_SRC}/${PACKAGE}/soluce/year${solution.getYear()}/day${solution.getDay()}/Day${solution.getDay()}Part${solution.getPart()}SolutionTest.java) | $solution.getResult() | $aocSolutions.nanoToMillis($nanos) |
+    #set($result = $solution.getResult())
+    #if($result)
+        #set($displayResult = $result.toString().replaceAll('\n', '<br>'))
+    #else
+        #set($displayResult = 'null')
+    #end
+| $solution.getYear() | $solution.getDay() | $solution.getPart() | [$solution.getDescription()]($solution.getLink()) | [Code](${SRC}/${PACKAGE}/soluce/year${solution.getYear()}/day${solution.getDay()}/Day${solution.getDay()}Part${solution.getPart()}Solution.java) | [Test](${TEST_SRC}/${PACKAGE}/soluce/year${solution.getYear()}/day${solution.getDay()}/Day${solution.getDay()}Part${solution.getPart()}SolutionTest.java) | $displayResult | $aocSolutions.nanoToMillis($nanos) |
 #end
 
 Solved $solutions.size() solutions in $aocSolutions.nanoToSeconds($total) seconds.
@@ -49,7 +61,13 @@ $aocSolutions.reset() $aocSolutions.classLoader(${path}) $aocSolutions.year("202
 #foreach ($solution in $solutions)
     #set($nanos = $solution.getStatistics(5).getMin())
     #set($total = $total + $nanos)
-| $solution.getYear() | $solution.getDay() | $solution.getPart() | [$solution.getDescription()]($solution.getLink()) | [Code](${SRC}/${PACKAGE}/soluce/year${solution.getYear()}/day${solution.getDay()}/Day${solution.getDay()}Part${solution.getPart()}Solution.java) | [Test](${TEST_SRC}/${PACKAGE}/soluce/year${solution.getYear()}/day${solution.getDay()}/Day${solution.getDay()}Part${solution.getPart()}SolutionTest.java) | $solution.getResult() | $aocSolutions.nanoToMillis($nanos) |
+    #set($result = $solution.getResult())
+    #if($result)
+        #set($displayResult = $result.toString().replaceAll('\n', '<br>'))
+    #else
+        #set($displayResult = 'null')
+    #end
+| $solution.getYear() | $solution.getDay() | $solution.getPart() | [$solution.getDescription()]($solution.getLink()) | [Code](${SRC}/${PACKAGE}/soluce/year${solution.getYear()}/day${solution.getDay()}/Day${solution.getDay()}Part${solution.getPart()}Solution.java) | [Test](${TEST_SRC}/${PACKAGE}/soluce/year${solution.getYear()}/day${solution.getDay()}/Day${solution.getDay()}Part${solution.getPart()}SolutionTest.java) | $displayResult | $aocSolutions.nanoToMillis($nanos) |
 #end
 
 Solved $solutions.size() solutions in $aocSolutions.nanoToSeconds($total) seconds.

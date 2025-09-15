@@ -140,7 +140,6 @@ public class ASD {
         public void fall() {
             AffineTransformMatrix3D fall = AffineTransformMatrix3D.createTranslation(Vector3D.of(0, 0, getFallDistance()));
             bounds = Bounds3D.from(fall.apply(bounds.getMin()), fall.apply(bounds.getMax()));
-//            System.out.println("%s fall %s steps".formatted(this, getFallDistance()));
         }
 
         @Override
