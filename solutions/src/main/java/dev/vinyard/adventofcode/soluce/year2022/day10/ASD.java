@@ -37,21 +37,6 @@ public class ASD {
     public static class Sprites {
         private int x = 1;
 
-        public Sprites() {
-            Range<Integer> range = Range.between(x, x + 2);
-            StringBuilder builder = new StringBuilder();
-
-            for (int i = 1; i <= 40; i++) {
-                if (range.contains(i)) {
-                    builder.append("#");
-                } else {
-                    builder.append(".");
-                }
-            }
-            System.out.println("Sprite position: " + builder);
-            System.out.println();
-        }
-
         public String getPixel(int position) {
             Range<Integer> range = Range.between(x, x + 2);
             if (range.contains(position)) {
@@ -63,18 +48,6 @@ public class ASD {
 
         public void addX(int value) {
             x += value;
-            Range<Integer> range = Range.between(x, x + 2);
-            StringBuilder builder = new StringBuilder();
-
-            for (int i = 1; i <= 40; i++) {
-                if (range.contains(i)) {
-                    builder.append("#");
-                } else {
-                    builder.append(".");
-                }
-            }
-            System.out.println("Sprite position: " + builder);
-            System.out.println();
         }
     }
 
@@ -96,21 +69,17 @@ public class ASD {
 
         @Override
         public void visit(AddX addX) {
-            System.out.println("Start cycle %s: begin executing addx %d".formatted(String.format("%4d", cycle), addX.value));
             drawPixel();
             drawPixel();
-            System.out.println("End of cycle %s: finish executing addx %d (Register X is now %d)".formatted(String.format("%4d", cycle - 1), addX.value, sprites.x + addX.value));
             sprites.addX(addX.value);
         }
 
         private void drawPixel() {
-            System.out.println("During cycle %s: CRT draws pixel in position %d".formatted(String.format("%3d", cycle), (cycle - 1) % lineLength));
-            screen.append(sprites.getPixel(cycle % lineLength));
-            System.out.println("Current CRT row: " + screen.substring(screen.lastIndexOf("\n") + 1));
-            System.out.println();
+            screen.append(sprites.getPixel(cycle));
 
             if ((cycle) % lineLength == 0) {
                 screen.append("\n");
+                cycle = 0;
             }
             cycle++;
         }
