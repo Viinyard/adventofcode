@@ -25,7 +25,7 @@ root returns [ASD.Root out]
 monkey_ref [Map<Integer, ASD.Monkey> monkeys] returns [ASD.Monkey out]
     : INT {
         int id = Integer.parseInt($INT.text);
-        $monkeys.putIfAbsent(id, new ASD.Monkey(id));
+        $monkeys.putIfAbsent(id, new ASD.Monkey());
         $out = $monkeys.get(id);
     }
     ;
@@ -37,6 +37,7 @@ monkey [Map<Integer, ASD.Monkey> monkeys] returns [ASD.Monkey out]
         $monkey_ref.out.setTest($test.out);
         $monkey_ref.out.setIfTrue($if_true.out);
         $monkey_ref.out.setIfFalse($if_false.out);
+        $monkey_ref.out.setDivisor($test.divisor);
         $out = $monkey_ref.out;
     }
     ;
@@ -55,21 +56,21 @@ items returns [LinkedList<ASD.Item> out]
     ;
 
 item returns [ASD.Item out]
-    : INT { $out = new ASD.Item(Integer.parseInt($INT.text)); }
+    : INT { $out = new ASD.Item(Long.parseLong($INT.text)); }
     ;
 
-operation returns [Function<Integer, Integer> out]
+operation returns [Function<Long, Long> out]
     : OPERATION calculation {
         $out = $calculation.out;
     }
     ;
 
-calculation returns [Function<Integer, Integer> out]
+calculation returns [Function<Long, Long> out]
     : OLD PLUS INT {
-        $out = a -> a + Integer.parseInt($INT.text);
+        $out = a -> a + Long.parseLong($INT.text);
     }
     | OLD MULTIPLY INT {
-        $out = a -> a * Integer.parseInt($INT.text);
+        $out = a -> a * Long.parseLong($INT.text);
     }
     | OLD PLUS OLD {
         $out = a -> a + a;
@@ -79,9 +80,10 @@ calculation returns [Function<Integer, Integer> out]
     }
     ;
 
-test returns [Predicate<Integer> out]
+test returns [Predicate<Long> out, Long divisor]
     : TEST DIVISIBLE INT {
-        $out = a -> a % Integer.parseInt($INT.text) == 0;
+        $divisor = Long.parseLong($INT.text);
+        $out = a -> a % $divisor == 0;
     }
     ;
 
