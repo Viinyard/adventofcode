@@ -1,6 +1,9 @@
 package dev.vinyard.adventofcode.soluce.year2022.day12;
 
 import org.jgrapht.Graph;
+import org.jgrapht.GraphPath;
+import org.jgrapht.alg.interfaces.ManyToManyShortestPathsAlgorithm;
+import org.jgrapht.alg.shortestpath.DijkstraManyToManyShortestPaths;
 import org.jgrapht.alg.shortestpath.DijkstraShortestPath;
 import org.jgrapht.graph.DefaultWeightedEdge;
 import org.jgrapht.graph.builder.GraphTypeBuilder;
@@ -10,6 +13,9 @@ import java.awt.geom.AffineTransform;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class ASD {
 
@@ -70,13 +76,31 @@ public class ASD {
             Square start = squares.stream().filter(s -> s.elevation.equals("S")).findAny().orElseThrow();
             Square end = squares.stream().filter(s -> s.elevation.equals("E")).findAny().orElseThrow();
 
-            return getShortestPathLength(start, end);
+            return getShortestPathLength(start, end).getLength();
         }
 
-        public long getShortestPathLength(Square start, Square end) {
+        public long part2() {
+            Set<Square> starts = squares.stream().filter(s -> s.getElevationValue() == 0).collect(Collectors.toSet());
+            Square end = squares.stream().filter(s -> s.elevation.equals("E")).findAny().orElseThrow();
+
             Graph<Square, DefaultWeightedEdge> graph = buildGraph();
 
-            return DijkstraShortestPath.findPathBetween(graph, start, end).getLength();
+            DijkstraManyToManyShortestPaths<Square, DefaultWeightedEdge> dijkstraManyToManyShortestPaths = new DijkstraManyToManyShortestPaths<>(graph);
+
+            ManyToManyShortestPathsAlgorithm.ManyToManyShortestPaths<Square, DefaultWeightedEdge> manyToManyPaths = dijkstraManyToManyShortestPaths.getManyToManyPaths(starts, Set.of(end));
+
+            return starts.stream()
+                    .map(s -> manyToManyPaths.getPath(s, end))
+                    .flatMap(Stream::ofNullable)
+                    .mapToLong(GraphPath::getLength)
+                    .min()
+                    .orElseThrow();
+        }
+
+        public GraphPath<Square, DefaultWeightedEdge> getShortestPathLength(Square start, Square end) {
+            Graph<Square, DefaultWeightedEdge> graph = buildGraph();
+
+            return DijkstraShortestPath.findPathBetween(graph, start, end);
         }
     }
 
