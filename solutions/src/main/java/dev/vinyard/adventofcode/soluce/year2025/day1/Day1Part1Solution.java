@@ -68,6 +68,8 @@ public class Day1Part1Solution implements Solution<Long> {
         SolutionParser parser = new SolutionParser(tokens);
         // TODO get the ASD from the parser
 
-        return null;
+        ASD.Root root = parser.root().out;
+
+        return root.solution1();
     }
 }
