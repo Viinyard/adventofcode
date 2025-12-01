@@ -12,7 +12,8 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -28,6 +29,8 @@ jobs:
           echo "AOC_SESSION_ID=${{ secrets.AOC_SESSION_ID }}" >> $GITHUB_ENV
 
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
       - name: Commit generated solution
         run: |
           git config user.name 'Viinyard'
