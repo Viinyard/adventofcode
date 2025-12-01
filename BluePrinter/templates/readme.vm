@@ -73,3 +73,27 @@ $aocSolutions.reset() $aocSolutions.classLoader(${path}) $aocSolutions.year("202
 Solved $solutions.size() solutions in $aocSolutions.nanoToSeconds($total) seconds.
 
 ---
+
+
+$aocSolutions.reset() $aocSolutions.classLoader(${path}) $aocSolutions.year("2025") #set($solutions = $aocSolutions.getSolutions())
+![Static Badge](https://img.shields.io/badge/aoc-2025-yellow?style=for-the-badge&logo=adventofcode&label=$solutions.size())
+
+#set($solutions = $aocSolutions.getSolutions())
+#set($total = 0)
+| Year | Day | Part | Name | Code | Test | Result | Time (ms) |
+|------|-----|------|------|------|------|--------|-----------|
+#foreach ($solution in $solutions)
+    #set($nanos = $solution.getStatistics(5).getMin())
+    #set($total = $total + $nanos)
+    #set($result = $solution.getResult())
+    #if($result)
+        #set($displayResult = $result.toString().replaceAll('\n', '<br>'))
+    #else
+        #set($displayResult = 'null')
+    #end
+| $solution.getYear() | $solution.getDay() | $solution.getPart() | [$solution.getDescription()]($solution.getLink()) | [Code](${SRC}/${PACKAGE}/soluce/year${solution.getYear()}/day${solution.getDay()}/Day${solution.getDay()}Part${solution.getPart()}Solution.java) | [Test](${TEST_SRC}/${PACKAGE}/soluce/year${solution.getYear()}/day${solution.getDay()}/Day${solution.getDay()}Part${solution.getPart()}SolutionTest.java) | $displayResult | $aocSolutions.nanoToMillis($nanos) |
+#end
+
+Solved $solutions.size() solutions in $aocSolutions.nanoToSeconds($total) seconds.
+
+---

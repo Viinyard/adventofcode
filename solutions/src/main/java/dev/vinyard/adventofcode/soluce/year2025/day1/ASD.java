@@ -1,6 +1,11 @@
 package dev.vinyard.adventofcode.soluce.year2025.day1;
 
+import lombok.Getter;
+import org.apache.commons.math3.geometry.euclidean.threed.Rotation;
+
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Stream;
 
 public class ASD {
 
@@ -18,23 +23,32 @@ public class ASD {
                     .filter(rotation -> dial.getPosition() == 0)
                     .count();
         }
+
+        public Object solution2() {
+            Dial dial = new Dial(50);
+            return rotations.stream()
+                    .mapToLong(dial::rotate)
+                    .sum();
+        }
     }
 
     public static class Dial {
+
+        @Getter
         private int position;
 
         public Dial(int position) {
             this.position = position;
         }
 
-        public void rotate(DialRotation rotation) {
-            int delta = rotation.getDirection() == Direction.LEFT ? -rotation.getSteps() : rotation.getSteps();
-            position = Math.floorMod(position + delta, 100);
+        private void move(Direction direction) {
+            position = Math.floorMod(position + direction.getStep(), 100);
         }
 
-        public int getPosition() {
-            return position;
+        public long rotate(DialRotation rotation) {
+            return Stream.generate(() -> rotation.direction).limit(rotation.getSteps()).peek(this::move).filter(dir -> Objects.equals(position, 0)).count();
         }
+
     }
 
     public static class DialRotation {
@@ -56,8 +70,18 @@ public class ASD {
     }
 
     public enum Direction {
-        LEFT,
-        RIGHT
+        LEFT(-1),
+        RIGHT(+1);
+
+        private final int step;
+
+        Direction(int step) {
+            this.step = step;
+        }
+
+        public int getStep() {
+            return step;
+        }
     }
 
 }
