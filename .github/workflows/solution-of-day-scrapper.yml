@@ -12,7 +12,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         
 
       - name: Set up Java
@@ -28,9 +28,7 @@ jobs:
           echo "DAY=$(date +'%d')" >> $GITHUB_ENV
           echo "AOC_SESSION_ID=${{ secrets.AOC_SESSION_ID }}" >> $GITHUB_ENV
 
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: true
+      - uses: actions/checkout@v6
       - name: Commit generated solution
         run: |
           git config user.name 'Viinyard'
