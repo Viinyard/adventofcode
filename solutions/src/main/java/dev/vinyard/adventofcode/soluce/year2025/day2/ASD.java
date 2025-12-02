@@ -2,6 +2,7 @@ package dev.vinyard.adventofcode.soluce.year2025.day2;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class ASD {
@@ -15,7 +16,14 @@ public class ASD {
         }
 
         public long solution1() {
-            return intervals.stream().map(Interval::getInvalidIds)
+            return intervals.stream().map(i -> i.getInvalidIds(i::isInvalidP1))
+                    .flatMap(List::stream)
+                    .mapToLong(Long::longValue)
+                    .sum();
+        }
+
+        public Object solution2() {
+            return intervals.stream().map(i -> i.getInvalidIds(i::isInvalidP2))
                     .flatMap(List::stream)
                     .mapToLong(Long::longValue)
                     .sum();
@@ -31,13 +39,13 @@ public class ASD {
             this.end = end;
         }
 
-        public List<Long> getInvalidIds() {
+        public List<Long> getInvalidIds(Predicate<Long> isInvalid) {
             return Stream.iterate(start, n -> n <= end, n -> n + 1)
-                    .filter(this::isInvalid)
+                    .filter(isInvalid)
                     .toList();
         }
 
-        public boolean isInvalid(Long value) {
+        public boolean isInvalidP1(Long value) {
             String id = value.toString();
 
             int length = id.length();
@@ -49,6 +57,12 @@ public class ASD {
             String secondHalf = id.substring(length / 2);
 
             return Objects.equals(firstHalf, secondHalf);
+        }
+
+        public boolean isInvalidP2(Long value) {
+            String s = Long.toString(value);
+            String motif = s + s;
+            return motif.indexOf(s, 1) != s.length();
         }
 
     }
