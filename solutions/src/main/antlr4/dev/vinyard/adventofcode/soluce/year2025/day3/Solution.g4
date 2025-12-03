@@ -9,13 +9,32 @@ options {
 }
 
 root returns [ASD.Root out]
-    :
+		@init {
+			List<ASD.Bank> banks = new ArrayList<>();
+		}
+    : (bank { banks.add($bank.out); } )+ {
+				$out = new ASD.Root(banks);
+		}
     ;
 
+bank returns [ASD.Bank out]
+		@init {
+			List<Integer> joltages = new ArrayList<>();
+		}
+		: (INT {
+				joltages.add(Integer.parseInt($INT.text));
+			} )+ NEWLINE?{
+				$out = new ASD.Bank(joltages);
+			}
+		;
+
 INT
-    // integer part forbis leading 0s (e.g. `01`)
-    : '0' | [1-9][0-9]*
+    : [1-9]
     ;
+
+NEWLINE
+		: '\r'? '\n'
+		;
 
 WS
     : [ \t\n\r]+ -> skip
