@@ -19,10 +19,10 @@ root returns [ASD.Root out]
 
 bank returns [ASD.Bank out]
 		@init {
-			List<Integer> joltages = new ArrayList<>();
+			List<Long> joltages = new ArrayList<>();
 		}
 		: (INT {
-				joltages.add(Integer.parseInt($INT.text));
+				joltages.add(Long.parseLong($INT.text));
 			} )+ NEWLINE?{
 				$out = new ASD.Bank(joltages);
 			}

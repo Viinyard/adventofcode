@@ -16,30 +16,41 @@ public class ASD {
 
         public long solution1() {
             return banks.stream()
-                    .mapToLong(Bank::getMaxJoltage)
+                    .mapToLong(b -> b.getMaxJoltage(2))
                     .sum();
         }
 
+        public Object solution2() {
+            return banks.stream()
+                    .mapToLong(b -> b.getMaxJoltage(12))
+                    .sum();
+        }
     }
 
     public static class Bank {
 
         @Getter
-        private List<Integer> joltages;
+        private List<Long> joltages;
 
-        public Bank(List<Integer> joltages) {
+        public Bank(List<Long> joltages) {
             this.joltages = joltages;
         }
 
-        public long getMaxJoltage() {
-            int firstMaxIndex = getMaxDigitFromIndex(0, joltages.size() - 1);
-            int secondMaxIndex = getMaxDigitFromIndex(firstMaxIndex + 1, joltages.size());
+        public long getMaxJoltage(int nbDigits) {
+            long maxJoltage = 0;
+            int currentIndex = 0;
 
-            return joltages.get(firstMaxIndex) * 10 + joltages.get(secondMaxIndex);
+            for (int i = nbDigits; i > 0; i--) {
+                currentIndex = getMaxDigitFromIndex(currentIndex, joltages.size() - i + 1);
+                maxJoltage += joltages.get(currentIndex) * (long) Math.pow(10, i - 1);
+                currentIndex++;
+            }
+
+            return maxJoltage;
         }
 
         public int getMaxDigitFromIndex(int startIndex, int endIndex) {
-            int maxDigit = -1;
+            long maxDigit = -1;
             int index = -1;
             for (int i = startIndex; i < endIndex; i++) {
                 if (joltages.get(i) > maxDigit) {
