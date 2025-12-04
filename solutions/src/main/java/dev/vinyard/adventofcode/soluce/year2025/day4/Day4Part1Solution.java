@@ -56,8 +56,9 @@ public class Day4Part1Solution implements Solution<Long> {
         SolutionLexer lexer = new SolutionLexer(charStream);
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         SolutionParser parser = new SolutionParser(tokens);
-        // TODO get the ASD from the parser
 
-        return null;
+        ASD.Root root = parser.root().out;
+
+        return root.solution1();
     }
 }
