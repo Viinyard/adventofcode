@@ -19,7 +19,7 @@ ingredients returns [List<ASD.Ingredient> out]
 		$out = new ArrayList<>();
 	}
 	:
-	(INT NEWLINE {
+	(INT NEWLINE? {
 			$out.add(new ASD.Ingredient(Long.parseLong($INT.text)));
 	})+
 	;

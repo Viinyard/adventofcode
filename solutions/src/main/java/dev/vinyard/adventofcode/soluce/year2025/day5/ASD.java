@@ -24,6 +24,7 @@ public class ASD {
         public long solution2() {
             int sizeBefore;
             int sizeAfter;
+
             do {
                 sizeBefore = ranges.size();
                 ranges = ranges.stream().mapMulti((range1, consumer) ->
@@ -37,10 +38,11 @@ public class ASD {
                                     }
                                 })
                 ).map(Range.class::cast).distinct().toList();
-                sizeAfter = ranges.size();
-            } while (sizeBefore != sizeAfter);
 
-            return ranges.stream().mapToLong(range -> range.end - range.start + 1).sum();
+                sizeAfter = ranges.size();
+            } while (Objects.equals(sizeBefore, sizeAfter));
+
+            return ranges.stream().mapToLong(Range::getSum).sum();
         }
     }
 
@@ -60,6 +62,10 @@ public class ASD {
         public Range(long start, long end) {
             this.start = start;
             this.end = end;
+        }
+
+        public long getSum() {
+            return end - start + 1;
         }
 
         public boolean intersects(Range other) {
