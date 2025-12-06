@@ -40,7 +40,7 @@ public class ASD {
                 ).map(Range.class::cast).distinct().toList();
 
                 sizeAfter = ranges.size();
-            } while (Objects.equals(sizeBefore, sizeAfter));
+            } while (!Objects.equals(sizeBefore, sizeAfter));
 
             return ranges.stream().mapToLong(Range::getSum).sum();
         }
