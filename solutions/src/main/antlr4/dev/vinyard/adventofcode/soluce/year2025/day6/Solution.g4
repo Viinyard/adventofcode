@@ -11,39 +11,40 @@ import java.util.HashMap;
 
 root returns [ASD.Root out]
     @init {
-        Map<Integer, ASD.Problem> problems = new HashMap<>();
+        List<char[]> matrix = new ArrayList<>();
     }
-    : numbers[problems]+ operations[problems] NEWLINE* EOF {
-        $out = new ASD.Root(problems.values());
+    : (row { matrix.add($row.out); })+ {
+        char[][] problems = new char[matrix.size()][];
+        for (int i = 0; i < matrix.size(); i++) {
+            problems[i] = matrix.get(i);
+        }
+
+        $out = new ASD.Root(problems);
     }
     ;
 
-number [int x, Map<Integer, ASD.Problem> problems]
+char [StringBuilder sb]
     : INT {
-        problems.merge(x, new ASD.Problem(Long.parseLong($INT.text)), (oldP, newP) -> oldP.merge(newP));
+        sb.append($INT.text);
     }
-    ;
-
-numbers [Map<Integer, ASD.Problem> problems]
-    @init {
-        int x = 0;
-    }
-    : number[x++, problems]+ NEWLINE?
-    ;
-
-operations [Map<Integer, ASD.Problem> problems]
-    @init {
-        int x = 0;
-    }
-    : operation[x++, problems]+ NEWLINE?
-    ;
-
-operation [int x, Map<Integer, ASD.Problem> problems]
-    : ADD {
-        problems.get(x).setOperation(ASD.Operation.ADD);
+    | SPACE {
+        sb.append($SPACE.text);
     }
     | MUL {
-        problems.get(x).setOperation(ASD.Operation.MULTIPLY);
+        sb.append($MUL.text);
+    }
+    | ADD {
+        sb.append($ADD.text);
+    }
+    ;
+
+row returns [char[] out]
+    @init {
+        StringBuilder sb = new StringBuilder();
+    }
+    :
+    char[sb]+ NEWLINE? {
+        $out = sb.toString().toCharArray();
     }
     ;
 
@@ -55,15 +56,19 @@ ADD
     : '+'
     ;
 
+SPACE
+    : ' '
+    ;
+
 NEWLINE
     : '\r'? '\n'
     ;
 
 INT
     // integer part forbis leading 0s (e.g. `01`)
-    : '0' | [1-9][0-9]*
+    : [0-9]
     ;
 
 WS
-    : [ \t]+ -> skip
+    : [\t]+ -> skip
     ;
