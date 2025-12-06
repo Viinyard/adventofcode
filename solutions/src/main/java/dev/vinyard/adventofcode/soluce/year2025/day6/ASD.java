@@ -25,7 +25,7 @@ public class ASD {
                 }
             }
 
-            problems.add(getProblem(matrix, from, matrix[0].length + 1));
+            problems.add(getProblem(matrix, from, matrix[0].length));
         }
 
         private Problem getProblem(char[][] matrix, int fromX, int toX) {
@@ -49,7 +49,7 @@ public class ASD {
             return Stream.iterate(0, y -> y + 1)
                     .limit(matrix.length)
                     .map(y -> matrix[y][column])
-                    .noneMatch(ch -> ch != ' ');
+                    .allMatch(ch -> ch == ' ');
         }
 
         public Long solution1() {
