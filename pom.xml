@@ -24,6 +24,13 @@
                     <configuration>
                         <source>${java.version}</source>
                         <target>${java.version}</target>
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                                <version>${lombok.version}</version>
+                            </path>
+                        </annotationProcessorPaths>
                     </configuration>
                     <version>${maven-compiler-plugin.version}</version>
                 </plugin>
@@ -53,28 +60,38 @@
             </plugins>
         </pluginManagement>
     </build>
+    
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.squareup.okhttp3</groupId>
+                <artifactId>okhttp-bom</artifactId>
+                <version>${okhttp.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven-compiler-plugin.version>3.12.1</maven-compiler-plugin.version>
-        <antlr4-maven-plugin.version>4.13.1</antlr4-maven-plugin.version>
-        <junit-jupiter-engine.version>5.11.3</junit-jupiter-engine.version>
-        <junit-jupiter-params.version>5.11.3</junit-jupiter-params.version>
-        <assertj-core.version>3.24.2</assertj-core.version>
-        <antlr4-runtime.version>4.13.1</antlr4-runtime.version>
-        <commons-lang3.version>3.11</commons-lang3.version>
-        <lombok.version>1.18.30</lombok.version>
+        <maven-compiler-plugin.version>3.14.1</maven-compiler-plugin.version>
+        <antlr4-maven-plugin.version>4.13.2</antlr4-maven-plugin.version>
+        <antlr4-runtime.version>4.13.2</antlr4-runtime.version>
+        <junit-jupiter-engine.version>6.0.1</junit-jupiter-engine.version>
+        <junit-jupiter-params.version>6.0.1</junit-jupiter-params.version>
+        <assertj-core.version>3.27.6</assertj-core.version>
+        <commons-lang3.version>3.20.0</commons-lang3.version>
+        <lombok.version>1.18.42</lombok.version>
         <velocity-tools-generic.version>3.1</velocity-tools-generic.version>
         <velocity-engine-core.version>2.4.1</velocity-engine-core.version>
-        <pf4j.version>3.12.1</pf4j.version>
-        <velocity-engine-core.version>2.3</velocity-engine-core.version>
+        <pf4j.version>3.14.0</pf4j.version>
         <plugins-api.version>2.0.1</plugins-api.version>
-        <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
+        <maven-resources-plugin.version>3.4.0</maven-resources-plugin.version>
         <reflections.version>0.10.2</reflections.version>
-        <okhttp.version>4.12.0</okhttp.version>
-        <jsoup.version>1.17.1</jsoup.version>
-        <java.version>21</java.version>
-        <exec-maven-plugin.version>3.5.0</exec-maven-plugin.version>
-        <spring-boot-dependencies.version>3.3.3</spring-boot-dependencies.version>
+        <okhttp.version>5.3.2</okhttp.version>
+        <jsoup.version>1.21.2</jsoup.version>
+        <java.version>25</java.version>
+        <exec-maven-plugin.version>3.6.2</exec-maven-plugin.version>
     </properties>
 </project>

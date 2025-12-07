@@ -5,38 +5,40 @@ import org.apache.commons.lang3.ArrayUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.function.BinaryOperator;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class ASD {
 
     public static class Root {
 
-        private final List<Problem> problems = new ArrayList<>();
+        private final List<Problem> problems;
 
         public Root(char[][] matrix) {
-            int from = 0;
-            for (int x = 0; x < matrix[0].length; x++) {
-
-                if (isDelimiterColumn(matrix, x)) {
-                    problems.add(getProblem(matrix, from, x));
-                    from = x + 1;
-                }
+            this.problems = split(matrix).stream().map(Problem::new).toList();
+        }
+        
+        public List<char[][]> split(char[][] matrix) {
+            LinkedList<Integer> list = Stream.iterate(0, i -> i + 1)
+                    .limit(matrix[0].length)
+                    .filter(col -> isBlank(matrix, col))
+                    .collect(Collectors.toCollection(LinkedList::new));
+            
+            list.addFirst(-1);
+            list.addLast(matrix[0].length);
+            
+            List<char[][]> result = new ArrayList<>();
+            while (list.size() > 1) {
+                int fromX = list.pollFirst() + 1;
+                int toX = list.getFirst();
+                
+                result.add(getSubMatrix(matrix, fromX, toX));
             }
 
-            problems.add(getProblem(matrix, from, matrix[0].length));
-        }
-
-        private Problem getProblem(char[][] matrix, int fromX, int toX) {
-            char[][] array = getSubMatrix(matrix, fromX, toX);
-
-            char[][] numbers = ArrayUtils.subarray(array, 0, array.length - 1);
-
-            char[] operations = array[array.length - 1];
-            String operation = String.valueOf(operations).trim();
-
-            return new Problem(numbers, Operation.fromString(operation));
+            return result;
         }
 
         private char[][] getSubMatrix(char[][] matrix, int fromX, int toX) {
@@ -44,64 +46,66 @@ public class ASD {
                     .map(row -> ArrayUtils.subarray(row, fromX, toX))
                     .toArray(char[][]::new);
         }
-
-        private boolean isDelimiterColumn(char[][] matrix, int column) {
+        
+        private boolean isBlank(char[][] matrix, int column) {
             return Stream.iterate(0, y -> y + 1)
                     .limit(matrix.length)
                     .map(y -> matrix[y][column])
-                    .allMatch(ch -> ch == ' ');
+                    .collect(StringBuilder::new, StringBuilder::append, StringBuilder::append)
+                    .toString().isBlank();
         }
 
         public Long solution1() {
-            return problems.stream().mapToLong(p -> p.getNumbers().stream().reduce(p.getOperation().apply()).orElse(0L)).sum();
+            return problems.stream().mapToLong(Problem::solve).sum();
         }
 
         public Long solution2() {
-            return problems.stream().mapToLong(p -> p.getCephalopodNumbers().stream().reduce(p.getOperation().apply()).orElse(0L)).sum();
+            return problems.stream().peek(Problem::transpose).mapToLong(Problem::solve).sum();
         }
     }
 
     public static class Problem {
 
-        private final char[][] matrix;
+        private char[][] matrix;
 
         @Getter
         private final Operation operation;
 
-        public Problem(char[][] matrix, Operation operation) {
+        private Problem(char[][] matrix, Operation operation) {
             this.matrix = matrix;
-            System.out.println("Problem:");
-            Arrays.stream(matrix).map(Arrays::toString).forEach(System.out::println);
             this.operation = operation;
+        }
+        
+        public Problem(char[][] matrix) {
+            char[][] numbers = ArrayUtils.subarray(matrix, 0, matrix.length - 1);
 
-            System.out.println("Numbers: " + getNumbers());
-            System.out.println("Cephalopod Numbers: " + getCephalopodNumbers());
+            char[] operations = matrix[matrix.length - 1];
+            String operation = String.valueOf(operations).trim();
+            
+            this(numbers, Operation.fromString(operation));
         }
 
-        public List<Long> getNumbers() {
+        private List<Long> getNumbers() {
             return Arrays.stream(matrix)
                     .map(String::new)
                     .map(String::trim)
+                    .filter(s -> !s.isEmpty())
                     .map(Long::valueOf)
                     .toList();
         }
 
-        private char[][] transposeMatrix(char[][] matrix) {
+        public long solve() {
+            return getNumbers().stream().reduce(operation.apply()).orElse(0L);
+        }
+
+        public void transpose() {
             char[][] transposed = new char[matrix[0].length][matrix.length];
-
-            for (int i = 0; i < matrix.length; i++)
-                for (int j = 0; j < matrix[0].length; j++)
+            for (int i = 0; i < matrix.length; i++) {
+                for (int j = 0; j < matrix[0].length; j++) {
                     transposed[j][i] = matrix[i][j];
-
-            return transposed;
-        }
-
-        public List<Long> getCephalopodNumbers() {
-            return Arrays.stream(transposeMatrix(matrix))
-                    .map(String::new)
-                    .map(String::trim)
-                    .map(Long::valueOf)
-                    .toList();
+                }
+            }
+            this.matrix = transposed;
         }
     }
 
@@ -125,7 +129,5 @@ public class ASD {
         public BinaryOperator<Long> apply() {
             return operation;
         }
-
-
     }
 }
