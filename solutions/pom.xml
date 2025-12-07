@@ -4,14 +4,14 @@
     <parent>
         <groupId>dev.vinyard.aoc</groupId>
         <artifactId>aoc</artifactId>
-        <version>2024.1-SNAPSHOT</version>
+        <version>2025.1-SNAPSHOT</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
     <groupId>dev.vinyard.aoc.solutions</groupId>
     <artifactId>solutions</artifactId>
     <packaging>jar</packaging>
-    <version>2024.1-SNAPSHOT</version>
+    <version>2025.1-SNAPSHOT</version>
 
     <name>solutions</name>
 
