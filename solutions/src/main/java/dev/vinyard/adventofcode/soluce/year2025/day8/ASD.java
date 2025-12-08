@@ -4,6 +4,7 @@ import org.apache.commons.geometry.euclidean.threed.Vector3D;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.connectivity.ConnectivityInspector;
+import org.jgrapht.alg.spanning.KruskalMinimumSpanningTree;
 import org.jgrapht.alg.util.UnionFind;
 import org.jgrapht.graph.DefaultWeightedEdge;
 import org.jgrapht.graph.builder.GraphTypeBuilder;
@@ -62,6 +63,34 @@ public class ASD {
                     .sorted(Comparator.reverseOrder())
                     .limit(3)
                     .reduce(1, (a, b) -> a * b);
+        }
+
+        public long solution2() {
+            Graph<JunctionBoxe, DefaultWeightedEdge> graph = createEmptyGraph();
+
+            junctionBoxes.forEach(graph::addVertex);
+
+            List<Pair<JunctionBoxe, JunctionBoxe>> strings = new ArrayList<>();
+
+            for (int i = 0; i < junctionBoxes.size(); i++)
+                for (int j = i + 1; j < junctionBoxes.size(); j++)
+                    strings.add(Pair.of(junctionBoxes.get(i), junctionBoxes.get(j)));
+
+            strings.forEach(pair -> {
+                        DefaultWeightedEdge defaultWeightedEdge = graph.addEdge(pair.getLeft(), pair.getRight());
+                        Optional.ofNullable(defaultWeightedEdge).ifPresent(edge -> graph.setEdgeWeight(edge, pair.getLeft().distanceTo(pair.getRight())));
+                    });
+
+            KruskalMinimumSpanningTree<JunctionBoxe, DefaultWeightedEdge> kruskalMST = new KruskalMinimumSpanningTree<>(graph);
+
+            DefaultWeightedEdge last = kruskalMST.getSpanningTree().getEdges().stream()
+                    .sorted(Comparator.comparingDouble(graph::getEdgeWeight).reversed())
+                    .findAny().orElseThrow();
+
+            JunctionBoxe edgeSource = graph.getEdgeSource(last);
+            JunctionBoxe edgeTarget = graph.getEdgeTarget(last);
+
+            return (long) edgeSource.vector3D.getX() * (long) edgeTarget.vector3D.getX();
         }
 
     }
