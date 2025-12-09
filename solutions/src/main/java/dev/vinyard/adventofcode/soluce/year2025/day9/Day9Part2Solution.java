@@ -2,13 +2,9 @@ package dev.vinyard.adventofcode.soluce.year2025.day9;
 
 import dev.vinyard.aoc.plugins.solution.api.Solution;
 import dev.vinyard.aoc.plugins.solution.api.annotation.AdventOfCodeSolution;
-import dev.vinyard.adventofcode.utils.FileReader;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
-
-import java.io.IOException;
-import java.net.URISyntaxException;
 
 @AdventOfCodeSolution(year = 2025, day = 9, part = 2, description = "Movie Theater", link = "https://adventofcode.com/2025/day/9", tags = "unsolved")
 public class Day9Part2Solution implements Solution<Object> {
@@ -88,8 +84,9 @@ public class Day9Part2Solution implements Solution<Object> {
         SolutionLexer lexer = new SolutionLexer(charStream);
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         SolutionParser parser = new SolutionParser(tokens);
-        // TODO get the ASD from the parser
 
-        return null;
+        ASD.Root root = parser.root().out;
+
+        return root.solution2();
     }
 }
