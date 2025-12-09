@@ -16,8 +16,8 @@ public class Day9Part1SolutionTest extends BaseTest<Long> {
     @Override
     public Stream<Arguments> testSolution() {
         return Stream.of(
-            Arguments.of("soluce/year2025/day9/part1/test.txt", null, null, null),
-            Arguments.of("soluce/year2025/day9/input.txt", null, null, null)
+            Arguments.of("soluce/year2025/day9/part1/test.txt", 50L, null, null),
+            Arguments.of("soluce/year2025/day9/input.txt", 4756718172L, null, null)
         );
     }
 }
