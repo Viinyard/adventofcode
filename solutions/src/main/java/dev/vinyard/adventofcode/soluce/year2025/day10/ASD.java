@@ -2,17 +2,12 @@ package dev.vinyard.adventofcode.soluce.year2025.day10;
 
 import com.microsoft.z3.*;
 import lombok.Getter;
-import org.apache.commons.math3.optim.PointValuePair;
-import org.apache.commons.math3.optim.linear.*;
-import org.apache.commons.math3.optim.nonlinear.scalar.GoalType;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.interfaces.ShortestPathAlgorithm;
 import org.jgrapht.alg.shortestpath.DijkstraShortestPath;
 import org.jgrapht.graph.DefaultWeightedEdge;
 import org.jgrapht.graph.builder.GraphTypeBuilder;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.IntStream;
@@ -33,7 +28,7 @@ public class ASD {
         }
 
         public Object solution2() {
-            return machines.stream().mapToLong(Machine::solve3).peek(System.out::println).sum();
+            return machines.stream().parallel().mapToLong(Machine::solve2).sum();
         }
     }
 
@@ -62,11 +57,7 @@ public class ASD {
 
             indicateurLightDiagram.getAllSubDiagrams().forEach(graph::addVertex);
 
-            graph.vertexSet().forEach(startVertex -> {
-                buttonWiringSchematics.stream().map(ButtonWiringSchematic::getWiringState).forEach(schematic -> {
-                    graph.addEdge(startVertex, startVertex ^ schematic);
-                });
-            });
+            graph.vertexSet().forEach(startVertex -> buttonWiringSchematics.stream().map(ButtonWiringSchematic::getWiringState).forEach(schematic -> graph.addEdge(startVertex, startVertex ^ schematic)));
 
             ShortestPathAlgorithm<Integer, DefaultWeightedEdge> dijkstraAlg = new DijkstraShortestPath<>(graph);
 
@@ -74,81 +65,37 @@ public class ASD {
         }
 
         public long solve2() {
-            int numButtons = buttonWiringSchematics.size();
-            int numCounters = joltageRequirements.joltages.size();
+            try (Context context = new Context()) {
+                Optimize optimize = context.mkOptimize();
 
-            // Objectif : minimiser la somme des pressions de boutons
-            double[] objectiveCoefficients = new double[numButtons];
-            Arrays.fill(objectiveCoefficients, 1.0);
-
-            LinearObjectiveFunction objectiveFunction = new LinearObjectiveFunction(objectiveCoefficients, 0);
-
-            List<LinearConstraint> constraints = new ArrayList<>();
-
-            // Pour chaque compteur, ajouter une contrainte d'égalité
-            for (int counter = 0; counter < numCounters; counter++) {
-                double[] coefficients = new double[numButtons];
-
-                for (int button = 0; button < numButtons; button++) {
-                    ButtonWiringSchematic schematic = buttonWiringSchematics.get(button);
-                    // Vérifier si le bouton affecte ce compteur
-                    int finalCounter = counter;
-                    coefficients[button] = schematic.getButtons().stream()
-                            .anyMatch(b -> b.id == finalCounter) ? 1.0 : 0.0;
-                }
-
-                // La somme des pressions doit égaler exactement le joltage requis
-                constraints.add(new LinearConstraint(coefficients, Relationship.EQ, joltageRequirements.joltages.get(counter)));
-            }
-
-            SimplexSolver solver = new SimplexSolver();
-            PointValuePair solution = solver.optimize(
-                    objectiveFunction,
-                    new LinearConstraintSet(constraints),
-                    GoalType.MINIMIZE,
-                    new NonNegativeConstraint(true)
-            );
-
-            if (solution.getValue() * 100 % 100 != 0)
-                System.out.println("Value : " + solution.getValue());
-            return (long) Math.ceil(solution.getValue());
-        }
-
-        public long solve3() {
-            try (Context ctx = new Context()) {
-                Optimize opt = ctx.mkOptimize();
-
-                int numCounters = joltageRequirements.joltages.size();
-
+                // Variables pour le nombre de pressions de chaque bouton (doit être >= 0)
                 IntExpr[] buttonPresses = IntStream.range(0, buttonWiringSchematics.size())
-                        .mapToObj(i -> ctx.mkIntConst("button_" + i))
-                        .peek(expr -> opt.Add(ctx.mkGe(expr, ctx.mkInt(0))))
+                        .mapToObj(i -> context.mkIntConst("button_" + i))
+                        .peek(expr -> optimize.Add(context.mkGe(expr, context.mkInt(0))))
                         .toArray(IntExpr[]::new);
 
-                for (int counter = 0; counter < numCounters; counter++) {
-                    List<ArithExpr> terms = new ArrayList<>();
+                Stream.iterate(0, i -> i + 1).limit(joltageRequirements.joltages.size()).forEach(counter -> {
+                    IntExpr[] terms = Stream.iterate(0, i -> i + 1).limit(buttonWiringSchematics.size()).mapMulti((button, consumer) -> {
+                                ButtonWiringSchematic schematic = buttonWiringSchematics.get(button);
+                                if (schematic.getButtons().stream().anyMatch(b -> b.id == counter))
+                                    consumer.accept(buttonPresses[button]);
+                            }).map(IntExpr.class::cast)
+                            .toArray(IntExpr[]::new);
 
-                    int finalCounter = counter;
-                    IntStream.range(0, buttonWiringSchematics.size()).forEach(button -> {
-                        ButtonWiringSchematic schematic = buttonWiringSchematics.get(button);
-                        if (schematic.getButtons().stream().anyMatch(b -> b.id == finalCounter)) {
-                            terms.add(buttonPresses[button]);
-                        }
-                    });
-
-                    if (!terms.isEmpty()) {
-                        ArithExpr sum = ctx.mkAdd(terms.toArray(new ArithExpr[0]));
-                        opt.Add(ctx.mkEq(sum, ctx.mkInt(joltageRequirements.joltages.get(counter))));
+                    if (terms.length != 0) {
+                        // sum(terms) == joltageRequirements.joltages.get(counter)
+                        ArithExpr<IntSort> sum = context.mkAdd(terms);
+                        optimize.Add(context.mkEq(sum, context.mkInt(joltageRequirements.joltages.get(counter))));
                     }
-                }
+                });
 
-                ArithExpr totalPresses = ctx.mkAdd(buttonPresses);
-                opt.MkMinimize(totalPresses);
+                // Objectif : minimiser la somme des pressions de boutons
+                ArithExpr<IntSort> totalPresses = context.mkAdd(buttonPresses);
+                optimize.MkMinimize(totalPresses);
 
-                if (opt.Check() == Status.SATISFIABLE) {
-                    Model model = opt.getModel();
-                    long result = Long.parseLong(model.eval(totalPresses, false).toString());
-                    return result;
+                if (optimize.Check() == Status.SATISFIABLE) {
+                    Model model = optimize.getModel();
+                    return Long.parseLong(model.eval(totalPresses, false).toString());
                 }
 
                 throw new IllegalStateException("No solution found");
