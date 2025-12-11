@@ -1,5 +1,6 @@
 package dev.vinyard.adventofcode.soluce.year2025.day10;
 
+import com.microsoft.z3.*;
 import lombok.Getter;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.interfaces.ShortestPathAlgorithm;
@@ -9,6 +10,7 @@ import org.jgrapht.graph.builder.GraphTypeBuilder;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class ASD {
@@ -22,7 +24,11 @@ public class ASD {
         }
 
         public long solution1() {
-            return machines.stream().mapToLong(Machine::solve).sum();
+            return machines.stream().mapToLong(Machine::solve1).sum();
+        }
+
+        public Object solution2() {
+            return machines.stream().parallel().mapToLong(Machine::solve2).sum();
         }
     }
 
@@ -46,20 +52,54 @@ public class ASD {
                     .buildGraph();
         }
 
-        public long solve() {
+        public long solve1() {
             Graph<Integer, DefaultWeightedEdge> graph = createEmptyGraph();
 
             indicateurLightDiagram.getAllSubDiagrams().forEach(graph::addVertex);
 
-            graph.vertexSet().forEach(startVertex -> {
-                buttonWiringSchematics.stream().map(ButtonWiringSchematic::getWiringState).forEach(schematic -> {
-                    graph.addEdge(startVertex, startVertex ^ schematic);
-                });
-            });
+            graph.vertexSet().forEach(startVertex -> buttonWiringSchematics.stream().map(ButtonWiringSchematic::getWiringState).forEach(schematic -> graph.addEdge(startVertex, startVertex ^ schematic)));
 
             ShortestPathAlgorithm<Integer, DefaultWeightedEdge> dijkstraAlg = new DijkstraShortestPath<>(graph);
 
             return (long) dijkstraAlg.getPathWeight(0, indicateurLightDiagram.getState());
+        }
+
+        public long solve2() {
+            try (Context context = new Context()) {
+                Optimize optimize = context.mkOptimize();
+
+                // Variables pour le nombre de pressions de chaque bouton (doit être >= 0)
+                IntExpr[] buttonPresses = IntStream.range(0, buttonWiringSchematics.size())
+                        .mapToObj(i -> context.mkIntConst("button_" + i))
+                        .peek(expr -> optimize.Add(context.mkGe(expr, context.mkInt(0))))
+                        .toArray(IntExpr[]::new);
+
+                Stream.iterate(0, i -> i + 1).limit(joltageRequirements.joltages.size()).forEach(counter -> {
+                    IntExpr[] terms = Stream.iterate(0, i -> i + 1).limit(buttonWiringSchematics.size()).mapMulti((button, consumer) -> {
+                                ButtonWiringSchematic schematic = buttonWiringSchematics.get(button);
+                                if (schematic.getButtons().stream().anyMatch(b -> b.id == counter))
+                                    consumer.accept(buttonPresses[button]);
+                            }).map(IntExpr.class::cast)
+                            .toArray(IntExpr[]::new);
+
+                    if (terms.length != 0) {
+                        // sum(terms) == joltageRequirements.joltages.get(counter)
+                        ArithExpr<IntSort> sum = context.mkAdd(terms);
+                        optimize.Add(context.mkEq(sum, context.mkInt(joltageRequirements.joltages.get(counter))));
+                    }
+                });
+
+                // Objectif : minimiser la somme des pressions de boutons
+                ArithExpr<IntSort> totalPresses = context.mkAdd(buttonPresses);
+                optimize.MkMinimize(totalPresses);
+
+                if (optimize.Check() == Status.SATISFIABLE) {
+                    Model model = optimize.getModel();
+                    return Long.parseLong(model.eval(totalPresses, false).toString());
+                }
+
+                throw new IllegalStateException("No solution found");
+            }
         }
     }
 
@@ -77,6 +117,8 @@ public class ASD {
     }
 
     public static class ButtonWiringSchematic {
+
+        @Getter
         private final List<Button> buttons;
 
         @Getter
