@@ -11,11 +11,4 @@ dac: fff
 fff: ggg hhh
 ggg: out
 hhh: out
-    svr,aaa,fft,ccc,ddd,hub,fff,ggg,out
-svr,aaa,fft,ccc,ddd,hub,fff,hhh,out
-svr,aaa,fft,ccc,eee,dac,fff,ggg,out
-svr,aaa,fft,ccc,eee,dac,fff,hhh,out
-svr,bbb,tty,ccc,ddd,hub,fff,ggg,out
-svr,bbb,tty,ccc,ddd,hub,fff,hhh,out
-svr,bbb,tty,ccc,eee,dac,fff,ggg,out
-svr,bbb,tty,ccc,eee,dac,fff,hhh,out
+
