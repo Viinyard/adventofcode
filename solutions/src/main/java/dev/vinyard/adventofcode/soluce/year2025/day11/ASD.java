@@ -1,83 +1,76 @@
 package dev.vinyard.adventofcode.soluce.year2025.day11;
 
-import org.jgrapht.Graph;
-import org.jgrapht.alg.shortestpath.AllDirectedPaths;
-import org.jgrapht.graph.DefaultEdge;
-import org.jgrapht.graph.builder.GraphTypeBuilder;
-
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 public class ASD {
 
     public static class Root {
 
-        private final List<Wiring> wirings;
+        private final Map<String, List<String>> wirings;
 
-        public Root(List<Wiring> wirings) {
+        public Root(Map<String, List<String>> wirings) {
             this.wirings = wirings;
         }
 
-        private Graph<Device, DefaultEdge> createEmptyGraph() {
-            return GraphTypeBuilder.<Device, DefaultEdge>directed()
-                    .allowingMultipleEdges(false)
-                    .allowingSelfLoops(false)
-                    .edgeClass(DefaultEdge.class)
-                    .weighted(true)
-                    .buildGraph();
-        }
-
-        public Graph<Device, DefaultEdge> buildGraph() {
-            Graph<Device, DefaultEdge> graph = createEmptyGraph();
-
-            wirings.forEach(wiring -> {
-                graph.addVertex(wiring.from);
-                wiring.to.forEach(device -> {
-                    graph.addVertex(device);
-                    graph.addEdge(wiring.from, device);
-                });
-            });
-
-            return graph;
-        }
-
         public long solution1() {
-            AllDirectedPaths<Device, DefaultEdge> allDirectedPaths = new AllDirectedPaths<>(buildGraph());
-
-            return allDirectedPaths.getAllPaths(new Device("you"), new Device("out"), true, null).size();
+            PathCounter pathCounter = new PathCounter(this.wirings);
+            
+            return pathCounter.countPaths("you", "out");
         }
-
-    }
-
-    public static class Wiring {
-
-        private final Device from;
-        private final List<Device> to;
-
-        public Wiring(Device from, List<Device> to) {
-            this.from = from;
-            this.to = to;
-        }
-    }
-
-    public static class Device {
-
-        private final String id;
-
-        public Device(String id) {
-            this.id = id;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (!(o instanceof Device device)) return false;
-            return Objects.equals(id, device.id);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hashCode(id);
+        
+        public long solution2() {
+            PathCounter pathCounter = new PathCounter(this.wirings);
+            
+            long p1 = pathCounter.countPaths("svr", "dac");
+            System.out.println("Paths from svr to dac: " + p1);
+            long p2 = pathCounter.countPaths("dac", "fft");
+            System.out.println("Paths from dac to fft: " + p2);
+            long p3 = pathCounter.countPaths("fft", "out");
+            System.out.println("Paths from fft to out: " + p3);
+            
+            long p4 = pathCounter.countPaths("svr", "fft");
+            System.out.println("Paths from svr to fft: " + p4);
+            long p5 = pathCounter.countPaths("fft", "dac");
+            System.out.println("Paths from fft to dac: " + p5);
+            long p6 = pathCounter.countPaths("dac", "out");
+            System.out.println("Paths from dac to out: " + p6);
+            
+            return (p1 * p2 * p3) + (p4 * p5 * p6);
         }
     }
+    
+    public static class PathCounter {
+        
+        private final Map<String, List<String>> wiringMap;
+        
+        public PathCounter(Map<String, List<String>> wirings) {
+            this.wiringMap = wirings;
+        }
+        
+        public long countPaths(String start, String end) {
+            return countPaths(start, end, new HashSet<>(), new HashMap<>());
+        }
+
+        public long countPaths(String start, String end, Set<String> visited, Map<String, Long> memoizationCache) {
+            if (Objects.equals(start, end))
+                return 1;
+            
+            if (memoizationCache.containsKey(start))
+                return memoizationCache.get(start);
+            
+            if (visited.add(start)) {
+                long sum = this.wiringMap.getOrDefault(start, Collections.emptyList())
+                        .stream().mapToLong(s -> countPaths(s, end, new HashSet<>(visited), memoizationCache)).sum();
+                
+                memoizationCache.put(start, sum);
+                
+                return sum;
+            }
+                
+            return 0;
+        }
+    }
+
+    public record Wiring(String from, List<String> to) { }
 
 }

@@ -5,27 +5,26 @@ options {
 }
 
 @header {
-
+import java.util.Map;
+import java.util.HashMap;
 }
 
 root returns [ASD.Root out]
-		@init {
-			List<ASD.Wiring> wirings = new ArrayList<>();
-		}
-    : (wiring {
-			wirings.add($wiring.out);
-		})* EOF {
-			$out = new ASD.Root(wirings);
-		}
+	@init {
+		Map<String, List<String>> wirings = new HashMap<>();
+	}
+    : (wiring[wirings])* EOF {
+	    $out = new ASD.Root(wirings);
+	}
     ;
 
-wiring returns [ASD.Wiring out]
-		: device COLON devices {
-			$out = new ASD.Wiring($device.out, $devices.out);
-		}
-		;
+wiring [Map<String, List<String>> wirings]
+	: device COLON devices {
+		wirings.put($device.out, $devices.out);
+	}
+	;
 
-devices returns [List<ASD.Device> out]
+devices returns [List<String> out]
 	@init {
 		$out = new ArrayList<>();
 	}
@@ -35,9 +34,9 @@ devices returns [List<ASD.Device> out]
 	})+
 	;
 
-device returns [ASD.Device out]
+device returns [String out]
 	: ID {
-		$out = new ASD.Device($ID.text);
+		$out = $ID.text;
 	}
 	;
 
